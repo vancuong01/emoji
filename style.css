@@ -3,12 +3,16 @@
 body {
     background: linear-gradient(135deg, #4b2e1b, #2c1a0c);
     font-family: 'Verdana', sans-serif;
-    height: 100vh;
+    /* 1. SỬA vh THÀNH dvh */
+    height: 100dvh; 
     display: flex; flex-direction: column; justify-content: center; align-items: center;
     color: #ffd700;
+    
+    /* 2. THÊM PADDING ĐỂ TRÁNH TAI THỎ (NOTCH) */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
 }
-
-.header-text { font-size: 1.2rem; font-weight: bold; margin-bottom: 5px; }
 
 /* Khung chính */
 .game-container {
@@ -16,7 +20,9 @@ body {
     background-color: rgba(69, 44, 18, 0.7);
     border: 3px solid #6f4e2a; border-radius: 10px; padding: 15px;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    width: 98%; max-width: 1300px; height: 85vh;
+    width: 98%; max-width: 1300px; 
+    /* 3. SỬA vh THÀNH dvh */
+    height: 85dvh; 
 }
 
 .left-panel { width: 150px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding-bottom: 60px; }

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pikachu - Code By Văn Cường</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -54,8 +54,11 @@
         </div>
 
         <div class="center-panel">
-            <div id="board" class="board"></div>
-        </div>
+                    <svg id="connection-line-layer" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>
+
+                    <div id="board" class="board">
+                        </div>
+                </div>
 
         <div class="right-panel">
             <div class="timer-container">
