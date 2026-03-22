@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pikachu - Code By Văn Cường</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="rotate-warning">
+        <div class="rotate-content">
+            <div class="phone-icon">📱 ➡️ 📳</div>
+            <h2>Vui lòng xoay ngang điện thoại</h2>
+            <p>Game Pikachu có bản đồ rộng, hãy xoay ngang màn hình để có trải nghiệm chơi tốt nhất nhé!</p>
+        </div>
+    </div>
+
+    <div id="name-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>HỒ SƠ NGƯỜI CHƠI</h2>
+            <p>Vui lòng nhập tên của bạn để hệ thống lưu điểm và xếp hạng!</p>
+            <input type="text" id="player-name-input" placeholder="Ví dụ: Cường Đẹp Trai..." autocomplete="off">
+            <button id="start-game-btn">VÀO GAME</button>
+        </div>
+    </div>
+
+    <div class="header-text">Emoji-Văn Cường</div>
+
+    <div class="game-container">
+        <div class="left-panel">
+            <div class="logo">
+                <span>P</span><span>I</span><span>K</span><span>A</span><span>C</span><span>H</span><span>U</span>
+            </div>
+            
+            <div id="vc-cr" style="color: #ccc; font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px; font-weight: bold; user-select: none;">Code By VanCuong</div>
+            
+            <div class="stat-box">
+                <span class="label">Bàn</span>
+                <span class="value" id="level">1</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Đổi vị trí</span>
+                <span class="value" id="shuffle-count">5</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Gợi ý</span>
+                <span class="value" id="hint-count">5</span>
+            </div>
+            <div class="stat-box">
+                <span class="label">Điểm</span>
+                <span class="value" id="score">0</span>
+            </div>
+        </div>
+
+        <div class="center-panel">
+            <div id="board" class="board"></div>
+        </div>
+
+        <div class="right-panel">
+            <div class="timer-container">
+                <div class="timer-bar" id="timer-bar"></div>
+            </div>
+            <span class="timer-label">Thời gian</span>
+        </div>
+
+        <div class="footer-panel">
+            <button class="footer-btn" id="sound-btn">
+                <i>🔇</i> <span>Tắt âm thanh</span>
+            </button>
+            <button class="footer-btn" id="hint-btn">
+                <i>💡</i> <span>Gợi ý</span>
+            </button>
+            <button class="footer-btn" id="shuffle-btn">
+                <i>🔀</i> <span>Đổi vị trí</span>
+            </button>
+            <button class="footer-btn" id="restart-btn">
+                <i>🔄</i> <span>Chơi lại</span>
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
