@@ -138,3 +138,20 @@ body {
     #rotate-warning { display: block; }
     .game-container, .modal-overlay, .header-text { display: none !important; }
 }
+  .diff-btn {
+            flex: 1; padding: 12px; background: #2c1a0c; color: #fff; 
+            border: 2px solid #8b5a2b; border-radius: 8px; cursor: pointer; 
+            font-weight: bold; transition: 0.3s; font-size: 1rem;
+        }
+        .diff-btn.active {
+            background: linear-gradient(to bottom, #00ffff, #008888);
+            border-color: #fff; color: #000; 
+            box-shadow: 0 0 15px #00ffff, inset 0 0 10px rgba(255,255,255,0.5);
+            transform: scale(1.05);
+        }
+        
+        /* Chỉnh lại Footer để nhét vừa 6 nút */
+        .footer-panel { display: flex; justify-content: space-between; gap: 4px; width: 100%; padding: 5px; }
+        .footer-btn { flex: 1; padding: 8px 2px; font-size: 0.8rem; text-align: center; }
+        @media screen and (max-width: 600px) { .footer-btn span { display: none; } .footer-btn i { font-size: 1.4rem; } }
+   
