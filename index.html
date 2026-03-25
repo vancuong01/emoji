@@ -8,19 +8,14 @@
 </head>
 <body>
 
-   
-
-<div id="auth-overlay" class="modal-overlay hidden" style="z-index: 1000000; background: radial-gradient(circle, #8b5a2b, #3e2723); display: flex; flex-direction: column; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
-        <div class="modal-content" style="background: linear-gradient(135deg, #6f4e2a, #4b2e1b); border: 4px solid #d4af37; box-shadow: 0 0 30px rgba(0,0,0,0.8); width: 90%; max-width: 400px; padding: 40px 30px; text-align: center; border-radius: 15px;">
+    <div id="auth-overlay" class="modal-overlay hidden" style="z-index: 1000000; background: radial-gradient(circle, #8b5a2b, #3e2723);">
+        <div class="modal-content">
             <div style="font-size: 4rem; margin-bottom: 10px; text-shadow: 2px 2px 0 #000;">🔐</div>
-            <h2 id="auth-title" style="color: #ffd700; text-shadow: 2px 2px 0 #000; font-size: 2.2rem; margin-bottom: 10px;">ĐĂNG NHẬP</h2>
-            <p id="auth-desc" style="color: #fff; margin-bottom: 25px; font-size: 1.1rem;">Chào mừng trở lại! Vui lòng đăng nhập.</p>
-            
-            <input type="text" id="auth-name" placeholder="Tên tài khoản..." autocomplete="off" style="width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #8b5a2b; border-radius: 8px; background: #2c1a0c; color: #ffd700; font-size: 1.2rem; text-align: center; font-weight: bold; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-            <input type="password" id="auth-pass" placeholder="Mật khẩu..." autocomplete="off" style="width: 100%; padding: 15px; margin-bottom: 30px; border: 2px solid #8b5a2b; border-radius: 8px; background: #2c1a0c; color: #ffd700; font-size: 1.2rem; text-align: center; font-weight: bold; box-shadow: inset 0 0 10px rgba(0,0,0,0.5);">
-            
-            <button id="auth-action-btn" style="background: linear-gradient(to bottom, #4CAF50, #2E7D32); border: 3px solid #fff; color: #fff; font-weight: bold; padding: 15px 30px; border-radius: 12px; cursor: pointer; font-size: 1.4rem; width: 100%; box-shadow: 0 6px 10px rgba(0,0,0,0.5); text-shadow: 1px 1px 2px #000; transition: 0.2s;">ĐĂNG NHẬP</button>
-            
+            <h2 id="auth-title" style="color: #ffd700;">ĐĂNG NHẬP</h2>
+            <p id="auth-desc" style="color: #fff;">Chào mừng trở lại! Vui lòng đăng nhập.</p>
+            <input type="text" id="auth-name" placeholder="Tên tài khoản..." autocomplete="off">
+            <input type="password" id="auth-pass" placeholder="Mật khẩu..." autocomplete="off">
+            <button id="auth-action-btn" class="gold-btn">ĐĂNG NHẬP</button>
             <div style="margin-top: 25px; font-size: 1.1rem; color: #ccc;">
                 <span id="auth-switch-text">Chưa có tài khoản?</span> 
                 <b id="auth-switch-btn" style="color: #00ffff; cursor: pointer; text-decoration: underline;">Đăng ký ngay</b>
@@ -29,53 +24,59 @@
     </div>
 
     <div id="difficulty-modal" class="modal-overlay hidden" style="z-index: 9999999; backdrop-filter: blur(5px);">
-        <div class="modal-content" style="background: linear-gradient(135deg, #6f4e2a, #4b2e1b); border: 4px solid #d4af37; box-shadow: 0 0 30px rgba(0,0,0,0.9); max-width: 400px; padding: 30px; border-radius: 15px;">
-            <h2 style="color: #ffd700; text-shadow: 2px 2px 0 #000; font-size: 1.8rem; margin-bottom: 15px;">CHUẨN BỊ CHIẾN ĐẤU</h2>
+        <div class="modal-content">
+            <h2 style="color: #ffd700;">CHUẨN BỊ CHIẾN ĐẤU</h2>
             <div style="margin-bottom: 25px;">
-                <p style="color: #00ffff; margin-bottom: 15px; font-weight: bold; font-size: 1.2rem;">Chọn độ khó:</p>
-                <div style="display: flex; gap: 10px; justify-content: center;">
+                <p style="color: #00ffff; font-weight: bold; font-size: 1.2rem;">Chọn độ khó:</p>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
                     <button class="diff-btn active" data-diff="easy">DỄ</button>
                     <button class="diff-btn" data-diff="medium">VỪA</button>
                     <button class="diff-btn" data-diff="hard">KHÓ</button>
                 </div>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button id="cancel-diff-btn" style="flex: 1; background: #555; border: 2px solid #fff; color: #fff; font-weight: bold; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;">HỦY</button>
-                <button id="start-game-btn" style="flex: 1; background: linear-gradient(to bottom, #4CAF50, #2E7D32); border: 2px solid #fff; color: #fff; font-weight: bold; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">VÀO GAME</button>
+                <button id="cancel-diff-btn" style="flex: 1; background: #555; color: #fff; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">HỦY</button>
+                <button id="start-game-btn" class="gold-btn" style="flex: 1; padding: 12px;">VÀO GAME</button>
             </div>
         </div>
     </div>
-    <div class="header-text">Emoji-Tu Tiên Cùng Văn Cường</div>
 
-    <div class="game-container">
+    <div class="game-container" id="main-game-ui" style="display: none;">
+        
         <div class="left-panel">
-            <div class="logo">
-                <span>E</span><span>M</span><span>O</span><span>J</span><span>I</span><span>S</span>
-            </div>
+            <div class="logo"><span>E</span><span>M</span><span>O</span><span>J</span><span>I</span><span>S</span></div>
+            <div id="vc-cr" style="color: #ccc; font-size: 0.8rem; margin-top: -15px; font-weight: bold;">Code By VanCuong</div>
             
-            <div id="vc-cr" style="color: #ccc; font-size: 0.85rem; margin-top: -5px; margin-bottom: 15px; font-weight: bold; user-select: none;">Code By VanCuong</div>
-            
-            <div class="stat-box">
-                <span class="label">Bàn</span>
-                <span class="value" id="level">1</span>
+            <div id="player-profile-box" class="profile-box">
+                <img id="avatar-img" src="https://i.imgur.com/7HnLKEg.png" class="player-avatar-img">
+                <div class="profile-info">
+                    <span id="player-vip-badge" class="vip-badge">Phàm Nhân</span>
+                    <span id="player-name-txt" class="name-txt">Đại Hiệp</span>
+                </div>
             </div>
-            <div class="stat-box">
-                <span class="label">Đổi vị trí</span>
-                <span class="value" id="shuffle-count">5</span>
-            </div>
-            <div class="stat-box">
-                <span class="label">Gợi ý</span>
-                <span class="value" id="hint-count">5</span>
-            </div>
-            <div class="stat-box">
-                <span class="label">Điểm</span>
-                <span class="value" id="score">0</span>
+
+            <div class="stats-wrapper">
+                <div class="stat-box"><span class="label">Bàn</span><span class="value" id="level">1</span></div>
+                <div class="stat-box"><span class="label">Đổi vị trí</span><span class="value" id="shuffle-count">5</span></div>
+                <div class="stat-box"><span class="label">Gợi ý</span><span class="value" id="hint-count">5</span></div>
+                <div class="stat-box"><span class="label">Điểm</span><span class="value" id="score">0</span></div>
+                <div class="stat-box"><span class="label" style="color: #ffeb3b;">Kỷ lục</span><span class="value" id="high-score" style="color: #ffeb3b;">0</span></div>
             </div>
         </div>
 
         <div class="center-panel">
-            <svg id="connection-line-layer" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>
-            <div id="board" class="board"></div>
+            <div class="board-wrapper">
+                <svg id="connection-line-layer" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;"></svg>
+                <div id="board" class="board"></div>
+            </div>
+            
+            <div class="footer-panel">
+                <button class="footer-btn btn-red" id="sound-btn"><i>🔇</i> <span>Âm thanh</span></button>
+                <button class="footer-btn btn-blue" id="pause-btn"><i>⏸️</i> <span>Tạm dừng</span></button>
+                <button class="footer-btn btn-yellow" id="hint-btn"><i>💡</i> <span>Gợi ý</span></button>
+                <button class="footer-btn btn-green" id="shuffle-btn"><i>🔀</i> <span>Đổi vị trí</span></button>
+                <button class="footer-btn btn-gray" id="footer-quit-btn"><i>🚪</i> <span>Thoát</span></button>
+            </div>
         </div>
 
         <div class="right-panel">
@@ -85,37 +86,13 @@
             <span class="timer-label">Thời gian</span>
         </div>
 
-        <div class="footer-panel">
-            <button class="footer-btn" id="sound-btn">
-                <i>🔇</i> <span>Âm thanh</span>
-            </button>
-            <button class="footer-btn" id="pause-btn">
-                <i>⏸️</i> <span>Tạm dừng</span>
-            </button>
-            <button class="footer-btn" id="hint-btn">
-                <i>💡</i> <span>Gợi ý</span>
-            </button>
-            <button class="footer-btn" id="shuffle-btn">
-                <i>🔀</i> <span>Đổi vị trí</span>
-            </button>
-            <button class="footer-btn" id="footer-quit-btn">
-                <i>🏃</i> <span>Thoát</span>
-            </button>
-        </div>
     </div>
-    <div id="main-menu-overlay" class="modal-overlay hidden" style="z-index: 100000; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
-        <div class="modal-content" style="background: linear-gradient(135deg, #6f4e2a, #4b2e1b); border: 5px solid #d4af37; border-radius: 20px; padding: 50px 30px; text-align: center; box-shadow: 0 0 50px rgba(0,0,0,0.9); width: 90%; max-width: 450px;">
-           <div style="font-size: 4.5rem; color: #ffd700; font-weight: bold; text-shadow: 4px 4px 0 #000; margin-bottom: 40px; letter-spacing: 5px;">
-                EMOJI
-            </div>
-            <button id="btn-menu-start" style="background: linear-gradient(to bottom, #4CAF50, #2E7D32); border: 3px solid #fff; color: #fff; font-weight: bold; padding: 18px 30px; border-radius: 12px; cursor: pointer; font-size: 1.6rem; width: 100%; margin-bottom: 20px; box-shadow: 0 6px 10px rgba(0,0,0,0.5); transition: 0.2s;">▶ BẮT ĐẦU</button>
-            <button id="btn-menu-pvp" class="pvp-btn">⚔️ VÕ ĐÀI PvP</button>
-            <button id="btn-menu-ranking" style="background: linear-gradient(to bottom, #d4af37, #aa8000); border: 3px solid #fff; color: #000; font-weight: bold; padding: 18px 30px; border-radius: 12px; cursor: pointer; font-size: 1.6rem; width: 100%; box-shadow: 0 6px 10px rgba(0,0,0,0.5); transition: 0.2s;">🏆 RANKING</button>
-            
-        </div>
-    </div>
-   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    
+    <script src="javascript/core.js"></script>
     <script src="javascript/profile.js"></script>
     <script src="javascript/friends.js"></script>
     <script src="javascript/script.js"></script>
@@ -124,5 +101,11 @@
     <script src="javascript/daigia.js"></script>
     <script src="javascript/pvp.js"></script>
     <script src="javascript/chat.js"></script>
+    <script src="javascript/dangnhap.js"></script>
+    <script src="javascript/khung.js"></script>
+    <script src="javascript/game.js"></script>
+    <script src="javascript/lichsu.js"></script>
+    <script src="javascript/nhiemvu.js"></script>
+
 </body>
 </html>

@@ -1,6 +1,8 @@
-// ========================================================
-// FILE: shop.js - HỆ THỐNG CỬA HÀNG VÀ GIAO DỊCH LINH THẠCH
-// ========================================================
+/* ========================================================
+ * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
+ * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
+ * CẢNH BÁO: Mọi hành vi sao chép không xin phép đều là vi phạm!
+ ======================================================== */
 (function() {
     function createShopUI() {
         if (document.getElementById('shop-overlay')) return;
@@ -36,10 +38,10 @@
 
                     <div style="grid-column: span 2; background: #2a0845; padding: 15px; border-radius: 10px; border: 2px solid #e040fb; text-align: center; display: flex; justify-content: space-between; align-items: center;">
                         <div style="text-align: left;">
-                            <h3 style="color: #e040fb; margin-bottom: 5px;">💎 Rút Linh Thạch</h3>
-                            <p style="color: #ccc; font-size: 0.9rem; margin: 0;">Tiêu hao 1 Điểm Cảnh Giới lấy 1000 LT.</p>
+                            <h3 style="color: #e040fb; margin-bottom: 5px;">💎 Đổi Linh Thạch</h3>
+                            <p style="color: #ccc; font-size: 0.9rem; margin: 0;">Đổi 1 lần để đổi 1 Điểm = 10 LT.</p>
                         </div>
-                        <button onclick="exchangeVip()" style="background: #e040fb; color: #fff; border: 2px solid #fff; padding: 10px 20px; font-weight: bold; border-radius: 5px; cursor: pointer; font-size: 1.1rem;">Đổi: 1 Điểm = 1000 LT</button>
+                        <button onclick="exchangeVip()" style="background: #e040fb; color: #fff; border: 2px solid #fff; padding: 10px 20px; font-weight: bold; border-radius: 5px; cursor: pointer; font-size: 1.1rem;">Quy đổi ngay</button>
                     </div>
                 </div>
             </div>
@@ -52,19 +54,11 @@
         });
     }
 
-    // HÀM NHẤC THÔNG BÁO LÊN TRÊN CÙNG ĐỂ KHÔNG BỊ CỬA HÀNG CHE KHUẤT
-    function bringAlertToFront() {
-        let alertBox = document.getElementById('custom-alert-overlay');
-        if (alertBox) alertBox.style.zIndex = "999999999"; 
-    }
-
     window.openShopPanel = function() {
         if(window.playSoundInternal) window.playSoundInternal('select');
         let accId = localStorage.getItem('pikachu_account_id');
         if (!accId) { 
-            bringAlertToFront();
-            if(window.showCustomAlertInternal) window.showCustomAlertInternal("Vui lòng đăng nhập để vào Cửa Hàng!");
-            else alert("Vui lòng đăng nhập để vào Cửa Hàng!");
+            window.showCustomAlertInternal("Vui lòng đăng nhập để vào Cửa Hàng!");
             return; 
         }
 
@@ -109,11 +103,8 @@
             let data = snapshot.val();
             let currentCoins = data.coins || 0;
 
-            bringAlertToFront(); // GỌI HÀM NÀY TRƯỚC KHI HIỆN THÔNG BÁO
-
             if (currentCoins < price) {
-                if(window.showCustomAlertInternal) window.showCustomAlertInternal("❌ Bạn không đủ Linh Thạch!");
-                else alert("❌ Bạn không đủ Linh Thạch!");
+                window.showCustomAlertInternal("❌ Bạn không đủ Linh Thạch!");
                 return;
             }
 
@@ -122,17 +113,15 @@
             if (type === 'shuffle') updates.invShuffles = (data.invShuffles || 0) + 5;
 
             window.firebase.database().ref('users/' + accId).update(updates).then(() => {
-                if(window.showCustomAlertInternal) window.showCustomAlertInternal(`✅ Mua thành công 5 Lượt ${type === 'hint' ? 'Gợi Ý' : 'Đổi Vị Trí'}!`);
-                else alert(`✅ Mua thành công 5 Lượt ${type === 'hint' ? 'Gợi Ý' : 'Đổi Vị Trí'}!`);
+                window.showCustomAlertInternal(`✅ Mua thành công 5 Lượt ${type === 'hint' ? 'Gợi Ý' : 'Đổi Vị Trí'}!`);
                 
-                // CẬP NHẬT TRỰC TIẾP VÀO GAME ĐANG CHƠI NGAY LẬP TỨC
+                // CẬP NHẬT TRỰC TIẾP VÀO GAME
                 if (window.gameStateGlobal) {
                     if (type === 'hint') window.gameStateGlobal.hintsRemaining += 5;
                     if (type === 'shuffle') window.gameStateGlobal.shufflesRemaining += 5;
-                    if (window.updateUIGlobal) window.updateUIGlobal(); // Ép UI trong trận update liền
+                    if (window.updateUIGlobal) window.updateUIGlobal(); 
                 }
 
-                // Lưu lại LocalStorage
                 localStorage.setItem('pikachu_coins', updates.coins);
                 if (type === 'hint') localStorage.setItem('pikachu_inv_hints', updates.invHints);
                 if (type === 'shuffle') localStorage.setItem('pikachu_inv_shuffles', updates.invShuffles);
@@ -151,28 +140,19 @@
             let data = snapshot.val();
             let currentVip = data.vipPoints || 0; let currentCoins = data.coins || 0;
 
-            bringAlertToFront(); // GỌI HÀM NÀY TRƯỚC KHI HIỆN THÔNG BÁO
-
             if (currentVip < 1) {
-                if(window.showCustomAlertInternal) window.showCustomAlertInternal("❌ Không đủ Điểm Cảnh Giới!");
+                window.showCustomAlertInternal("❌ Không đủ Điểm Cảnh Giới!");
                 return;
             }
 
-            let amountToExchange = prompt(`Bạn đang có ${currentVip} Điểm.\nNhập số điểm muốn quy đổi (1 Điểm = 1000 LT):`, "1");
-            amountToExchange = parseInt(amountToExchange);
-
-            if (amountToExchange && !isNaN(amountToExchange) && amountToExchange > 0) {
-                if (amountToExchange > currentVip) {
-                    if(window.showCustomAlertInternal) window.showCustomAlertInternal("❌ Vượt quá số Điểm bạn có!"); return;
-                }
-                let updates = { vipPoints: currentVip - amountToExchange, coins: currentCoins + (amountToExchange * 1000) };
-                window.firebase.database().ref('users/' + accId).update(updates).then(() => {
-                    if(window.showCustomAlertInternal) window.showCustomAlertInternal(`✅ Nhận được ${amountToExchange * 1000} Linh Thạch.`);
-                    localStorage.setItem('pikachu_coins', updates.coins);
-                    localStorage.setItem('pikachu_vip_points', updates.vipPoints);
-                    refreshShopData(accId);
-                });
-            }
+            // Xóa prompt mặc định, bấm 1 phát đổi 1 điểm luôn!
+            let updates = { vipPoints: currentVip - 1, coins: currentCoins + 10 };
+            window.firebase.database().ref('users/' + accId).update(updates).then(() => {
+                window.showCustomAlertInternal(`✅ Đã dùng 1 Điểm đổi lấy 10 Linh Thạch!`);
+                localStorage.setItem('pikachu_coins', updates.coins);
+                localStorage.setItem('pikachu_vip_points', updates.vipPoints);
+                refreshShopData(accId);
+            });
         });
     };
 

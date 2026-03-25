@@ -1,5 +1,3 @@
-
-
 (function() {
     document.addEventListener('click', function(e) {
         if (e.target && (e.target.id === 'btn-menu-pvp' || e.target.closest('#btn-menu-pvp'))) {
@@ -24,7 +22,6 @@
         .pvp-btn-join { background: linear-gradient(to bottom, #4CAF50, #2E7D32); border: 1px solid #fff; color: white; padding: 5px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .pvp-btn-join:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
         
-        /* BÀN CỜ MẶC ĐỊNH (MOBILE CẦM DỌC) */
         .pvp-arena-container { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; max-width: 800px; margin: 0 auto; padding: 10px; box-sizing: border-box; overflow-y: auto; gap: 15px; overflow-x: hidden; }
         .pvp-info-panel { width: 100%; max-width: 500px; background: rgba(0,0,0,0.7); padding: 10px 15px; border-radius: 15px; display: flex; align-items: center; gap: 15px; box-sizing: border-box; height: fit-content; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .pvp-opp-panel { border: 2px solid #ff5252; }
@@ -37,22 +34,41 @@
         .pvp-badge-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         .pvp-badge-wrap.reverse { align-items: flex-start; }
         
-        .pvp-match3-board { display: grid; grid-template-columns: repeat(${CONFIG.COLS}, 1fr); gap: 2px; width: min(95vw, 60vh); aspect-ratio: 1; background: #2c1a0c; padding: 5px; border: 3px solid #3e2723; border-radius: 12px; margin: 0 auto; box-shadow: inset 0 0 20px #000; transition: opacity 0.3s; }
+        .pvp-match3-board { display: grid; grid-template-columns: repeat(${CONFIG.COLS}, 1fr); gap: 2px; width: min(95vw, 60vh); aspect-ratio: 1; background: #2c1a0c; padding: 5px; border: 3px solid #3e2723; border-radius: 12px; margin: 0 auto; box-shadow: inset 0 0 20px #000; transition: opacity 0.3s; position: relative; }
         .pvp-center-col { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         
-        .pvp-tile-m3 { background: #3e2723; border-radius: 8px; border: 1px solid #6f4e2a; display: flex; justify-content: center; align-items: center; font-size: min(8vw, 5.5vh, 2.5rem); cursor: pointer; transition: transform 0.1s, background 0.2s; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.3); user-select: none; }
+        /* HIỆU ỨNG TRÁO ĐỔI (SWAP) */
+        .pvp-tile-m3 { 
+            background: #3e2723; border-radius: 8px; border: 1px solid #6f4e2a; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: min(8vw, 5.5vh, 2.5rem); cursor: pointer; user-select: none; 
+            position: relative; z-index: 1;
+            transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), background 0.2s; 
+        }
         .pvp-tile-m3:active { transform: scale(0.9); box-shadow: inset 0 0 0 rgba(0,0,0,0); }
-        .pvp-tile-m3.selected { background: #ffeb3b; border: 2px solid red; box-shadow: 0 0 15px red; transform: scale(1.1); z-index: 10; }
+        .pvp-tile-m3.selected { background: #ffeb3b; border: 2px solid #ffeb3b; box-shadow: 0 0 15px #ffeb3b; transform: scale(1.1); z-index: 10; }
+        .pvp-tile-m3.swapping { z-index: 100 !important; }
+
+        /* HUYẾT ẤN KHI ĐỊCH CHỌN Ô */
+        .opp-selecting { 
+            animation: opp-select-flash 0.8s alternate infinite ease-in-out !important; 
+            z-index: 9 !important; border: 4px solid #ff0000 !important; 
+            pointer-events: none !important;
+        }
+        @keyframes opp-select-flash {
+            0% { border-color: #ff0000; box-shadow: 0 0 10px #ff0000; transform: scale(1.05); }
+            100% { border-color: #d32f2f; box-shadow: 0 0 25px #ff1744; transform: scale(1); }
+        }
+
         .pvp-tile-m3.explode { animation: explode-anim 0.3s forwards; }
         @keyframes explode-anim { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.8; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
         
         .hp-text-display { position: absolute; width: 100%; top: 0; left: 0; text-align: center; color: white; font-weight: bold; font-size: 0.9rem; line-height: 20px; z-index: 10; text-shadow: 1px 1px 2px #000; }
         .hp-bar-fill { transition: width 0.3s ease-out; }
         .shield-bar-fill { height: 100%; background: linear-gradient(90deg, #0091ea, #00e5ff); position: absolute; top: 0; left: 0; z-index: 5; transition: width 0.3s ease-out; }
-        .dmg-text { position: absolute; font-size: 3rem; font-weight: bold; text-shadow: 2px 2px 0 #000, 0 0 10px #000; pointer-events: none; z-index: 99999; animation: floatM3 1s forwards; }
-        @keyframes floatM3 { 0% { transform: translateY(0) scale(0.5); opacity: 1; } 50% { transform: translateY(-40px) scale(1.2); opacity: 1; } 100% { transform: translateY(-80px) scale(1); opacity: 0; } }
+        .dmg-text { position: absolute; font-size: 3rem; font-weight: bold; text-shadow: 2px 2px 0 #000, 0 0 10px #000; pointer-events: none; z-index: 99999; animation: floatM3 1s forwards; left: 50%; top: 40%; transform: translate(-50%, -50%); }
+        @keyframes floatM3 { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 1; } 50% { transform: translate(-50%, -40px) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -80px) scale(1); opacity: 0; } }
 
-        /* KHI XOAY NGANG ĐIỆN THOẠI HOẶC TRÊN PC (LANDSCAPE) */
         @media screen and (orientation: landscape) and (max-height: 800px), screen and (min-width: 800px) {
             .pvp-arena-container { flex-direction: row; max-width: 1400px; justify-content: center; align-items: center; overflow: hidden; padding: 15px; gap: 30px; }
             .pvp-info-panel { flex-direction: column; width: 260px; max-width: 260px; justify-content: center; padding: 25px 20px; text-align: center; }
@@ -64,6 +80,7 @@
             .pvp-match3-board { width: 65vh !important; height: 65vh !important; margin: 0 auto; }
         }
     `;
+
     if (!document.getElementById('pvp-match3-styles')) {
         let style = document.createElement('style'); style.id = 'pvp-match3-styles';
         style.innerHTML = pvpStyles; document.head.appendChild(style);
@@ -116,15 +133,10 @@
         overlay.classList.remove('hidden'); input.focus();
     };
     window.PvP = {
-        roomId: null, playerRole: null, 
-        hp: 100, maxHp: 100, shield: 0,
-        oppHp: 100, oppShield: 0,
-        board: [], selectedTile: null, isProcessing: false,
-        comboCount: 0, roomRef: null, lobbyRef: null,
-        
-        currentTurn: null, extraTurn: false,
-        turnTimer: null, turnTimeRemaining: 15,
-        roomBet: 0, isGameOver: false, 
+        roomId: null, playerRole: null, hp: 100, maxHp: 100, shield: 0, oppHp: 100, oppShield: 0,
+        board: [], pendingBoard: null, selectedTile: null, isProcessing: false, comboCount: 0, 
+        roomRef: null, lobbyRef: null, currentTurn: null, extraTurn: false, turnTimer: null, 
+        turnTimeRemaining: 15, roomBet: 0, isGameOver: false, lastActionId: null,
 
         openLobby: function() {
             let accId = localStorage.getItem('pikachu_account_id');
@@ -133,17 +145,11 @@
             if (this.lobbyRef) this.lobbyRef.off();
             if (this.roomRef) this.roomRef.off();
             if (this.turnTimer) clearInterval(this.turnTimer);
-            this.roomId = null; 
-            this.playerRole = null; 
-            this.isGameOver = false;
-            this.board = []; 
-            this.hp = this.maxHp; 
-            this.oppHp = this.maxHp;
-            this.shield = 0; 
-            this.oppShield = 0; 
-            this.comboCount = 0; 
-            this.isProcessing = false;
-            this.extraTurn = false;
+            
+            this.roomId = null; this.playerRole = null; this.isGameOver = false;
+            this.board = []; this.pendingBoard = null; this.hp = this.maxHp; this.oppHp = this.maxHp;
+            this.shield = 0; this.oppShield = 0; this.comboCount = 0; 
+            this.isProcessing = false; this.extraTurn = false;
 
             let mMenu = document.getElementById('main-menu-overlay'); if (mMenu) mMenu.classList.add('hidden');
             this.renderLobbyUI(); this.listenToRooms();
@@ -310,11 +316,13 @@
                 });
             });
         },
+
         changePassword: function() {
             window.showCustomPromptInternal("Nhập mật khẩu mới (Để trống nếu muốn Mở khóa):", (val) => {
                 window.firebase.database().ref('pvp_rooms/' + this.roomId).update({ password: val.trim() });
             });
         },
+
         enterWaitingRoom: function() {
             let db = window.firebase.database(); this.roomRef = db.ref('pvp_rooms/' + this.roomId);
             let wrap = document.getElementById('pvp-overlay-wrap'); if(!wrap) return;
@@ -371,6 +379,7 @@
                 </div>`;
             });
         },
+
         renderWaitingPlayer: function(pData, title) {
             let readyBadge = pData.ready ? `<span style="background: #4CAF50; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; display: inline-block; width: 100px; box-sizing: border-box;">ĐÃ SẴN SÀNG</span>` : `<span style="background: #555; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; display: inline-block; width: 100px; box-sizing: border-box;">ĐANG CHỜ...</span>`;
             return `
@@ -410,7 +419,6 @@
             if (window.playSoundInternal) window.playSoundInternal('select');
             window.showCustomConfirmInternal("Bạn có chắc chắn muốn rời phòng?", () => {
                 let db = window.firebase.database();
-                
                 if (this.playerRole === 'host') { 
                     db.ref('pvp_rooms/' + this.roomId).onDisconnect().cancel(); 
                     db.ref('pvp_rooms/' + this.roomId).remove().then(() => this.openLobby()); 
@@ -418,10 +426,7 @@
                 else { 
                     db.ref(`pvp_rooms/${this.roomId}/guest`).onDisconnect().cancel(); 
                     db.ref('pvp_rooms/' + this.roomId).update({ 
-                        guest: null, 
-                        status: 'waiting', 
-                        board: null, 
-                        currentTurn: null 
+                        guest: null, status: 'waiting', board: null, currentTurn: null 
                     }).then(() => this.openLobby()); 
                 }
                 this.roomRef.off();
@@ -446,13 +451,12 @@
             let db = window.firebase.database();
             let myRoomRef = db.ref(`pvp_rooms/${this.roomId}`);
             if (this.playerRole === 'host') { myRoomRef.onDisconnect().cancel(); } else { myRoomRef.child('guest').onDisconnect().cancel(); }
-            
             myRoomRef.child(this.playerRole).onDisconnect().update({ hp: 0 }); 
 
             let wrap = document.getElementById('pvp-overlay-wrap'); if(!wrap) return;
             this.hp = this.maxHp; this.shield = 0; this.oppHp = this.maxHp; this.oppShield = 0;
             this.comboCount = 0; this.isProcessing = false; this.extraTurn = false; this.isGameOver = false;
-            this.board = roomData.board; 
+            this.board = roomData.board; this.pendingBoard = null;
 
             let oppData = this.playerRole === 'host' ? roomData.guest : roomData.host;
             let myData = this.playerRole === 'host' ? roomData.host : roomData.guest;
@@ -509,15 +513,16 @@
                         <button onclick="PvP.surrender()" style="background: linear-gradient(to right, #b71c1c, #d32f2f); border: 2px solid #fff; color: #fff; font-weight: bold; padding: 5px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">🏳️ ĐẦU HÀNG</button>
                     </div>
                 </div>
-
             </div>`;
 
             this.drawGrid(); this.setupSync();
         },
-
         surrender: function() {
+            if (this.isGameOver) return;
             window.showCustomConfirmInternal("Đại hiệp có chắc chắn muốn bỏ chạy? Bạn sẽ mất toàn bộ tiền cược!", () => {
-                if (this.roomId && this.playerRole) { window.firebase.database().ref(`pvp_rooms/${this.roomId}/${this.playerRole}`).update({ hp: 0 }); }
+                if (this.roomId && this.playerRole) { 
+                    window.firebase.database().ref(`pvp_rooms/${this.roomId}/${this.playerRole}`).update({ hp: 0 }); 
+                }
             });
         },
 
@@ -550,7 +555,9 @@
         },
 
         drawGrid: function() {
-            const boardEl = document.getElementById('pvp-board'); if(!boardEl) return; boardEl.innerHTML = '';
+            const boardEl = document.getElementById('pvp-board'); 
+            if(!boardEl || this.isProcessing) return; // Nếu đang chạy hiệu ứng thì không vẽ lại
+            boardEl.innerHTML = '';
             for (let r = 0; r < CONFIG.ROWS; r++) {
                 for (let c = 0; c < CONFIG.COLS; c++) {
                     let tile = document.createElement('div');
@@ -561,26 +568,161 @@
             }
         },
 
+        sendAction: function(type, data) {
+            if(!this.roomId) return;
+            window.firebase.database().ref(`pvp_rooms/${this.roomId}/lastAction`).set({
+                id: Date.now() + Math.random(), sender: this.playerRole, type: type, data: data
+            });
+        },
         handleTileSelect: function(r, c, tileEl) {
             if (this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
             if (window.playSoundInternal) window.playSoundInternal('select');
+            
+            this.sendAction('select', { r, c });
 
-            if (!this.selectedTile) { this.selectedTile = { r, c, el: tileEl }; tileEl.classList.add('selected'); } 
-            else {
-                let sr = this.selectedTile.r, sc = this.selectedTile.c; this.selectedTile.el.classList.remove('selected');
+            if (!this.selectedTile) { 
+                this.selectedTile = { r, c, el: tileEl }; 
+                tileEl.classList.add('selected'); 
+            } else {
+                let sr = this.selectedTile.r, sc = this.selectedTile.c;
+                let sEl = this.selectedTile.el;
+                sEl.classList.remove('selected');
                 let isAdjacent = (Math.abs(sr - r) + Math.abs(sc - c) === 1);
 
                 if (isAdjacent) {
-                    this.isProcessing = true; let temp = this.board[sr][sc]; this.board[sr][sc] = this.board[r][c]; this.board[r][c] = temp; this.drawGrid();
-                    let matches = this.findMatches();
-                    if (matches.length > 0) { this.comboCount = 0; this.processMatches(matches); } 
-                    else {
-                        if (window.playSoundInternal) window.playSoundInternal('error');
-                        setTimeout(() => { let tempBack = this.board[sr][sc]; this.board[sr][sc] = this.board[r][c]; this.board[r][c] = tempBack; this.drawGrid(); this.isProcessing = false; }, 300);
-                    }
-                } else { this.selectedTile = { r, c, el: tileEl }; tileEl.classList.add('selected'); return; }
+                    this.isProcessing = true;
+                    this.sendAction('swap', { r1: sr, c1: sc, r2: r, c2: c });
+                    const dx = (c - sc) * (sEl.offsetWidth + 2);
+                    const dy = (r - sr) * (sEl.offsetHeight + 2);
+
+                    sEl.classList.add('swapping'); tileEl.classList.add('swapping');
+                    sEl.style.transform = `translate(${dx}px, ${dy}px)`;
+                    tileEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
+
+                    setTimeout(() => {
+                        let temp = this.board[sr][sc];
+                        this.board[sr][sc] = this.board[r][c];
+                        this.board[r][c] = temp;
+
+                        sEl.style.transform = ''; tileEl.style.transform = '';
+                        sEl.classList.remove('swapping'); tileEl.classList.remove('swapping');
+                        
+                        this.isProcessing = false;
+                        this.drawGrid();
+                        
+                        let matches = this.findMatches();
+                        if (matches.length > 0) { 
+                            this.isProcessing = true;
+                            this.comboCount = 0; this.processMatches(matches); 
+                        } 
+                        else {
+                            if (window.playSoundInternal) window.playSoundInternal('error');
+                            this.sendAction('swap_back', { r1: sr, c1: sc, r2: r, c2: c });
+                            
+                            this.isProcessing = true;
+                            sEl.style.transform = `translate(${dx}px, ${dy}px)`;
+                            tileEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
+                            setTimeout(() => {
+                                let tB = this.board[sr][sc]; this.board[sr][sc] = this.board[r][c]; this.board[r][c] = tB;
+                                sEl.style.transform = ''; tileEl.style.transform = '';
+                                this.isProcessing = false; this.drawGrid(); 
+                            }, 300);
+                        }
+                    }, 300);
+                } else {
+                    this.selectedTile = { r, c, el: tileEl }; tileEl.classList.add('selected'); return;
+                }
                 this.selectedTile = null;
             }
+        },
+        setupSync: function() {
+            let db = window.firebase.database(); let oppRole = this.playerRole === 'host' ? 'guest' : 'host';
+            this.roomRef = db.ref('pvp_rooms/' + this.roomId);
+            
+            this.roomRef.on('value', snap => {
+                if(!snap.exists()) { this.closeArena("Phòng đã bị giải tán!"); return; }
+                let data = snap.val();
+
+                let isSwappingAction = false; 
+                if (data.lastAction && data.lastAction.id !== this.lastActionId) {
+                    this.lastActionId = data.lastAction.id;
+                    let action = data.lastAction;
+                    
+                    if (action.sender !== this.playerRole) {
+                        let boardEl = document.getElementById('pvp-board');
+                        
+                        if (action.type === 'select') {
+                            document.querySelectorAll('.opp-selecting').forEach(t => t.classList.remove('opp-selecting'));
+                            if (boardEl && boardEl.children.length > 0) {
+                                let target = boardEl.children[action.data.r * CONFIG.COLS + action.data.c];
+                                if(target) target.classList.add('opp-selecting');
+                            }
+                        } 
+                        else if (action.type === 'swap' || action.type === 'swap_back') {
+                            isSwappingAction = true;
+                            this.isProcessing = true; 
+                            document.querySelectorAll('.opp-selecting').forEach(t => t.classList.remove('opp-selecting'));
+                            
+                            if (boardEl && boardEl.children.length > 0) {
+                                let el1 = boardEl.children[action.data.r1 * CONFIG.COLS + action.data.c1];
+                                let el2 = boardEl.children[action.data.r2 * CONFIG.COLS + action.data.c2];
+                                if(el1 && el2) {
+                                    const dx = (action.data.c2 - action.data.c1) * (el1.offsetWidth + 2);
+                                    const dy = (action.data.r2 - action.data.r1) * (el1.offsetHeight + 2);
+                                    el1.classList.add('swapping'); el2.classList.add('swapping');
+                                    el1.style.transform = `translate(${dx}px, ${dy}px)`;
+                                    el2.style.transform = `translate(${-dx}px, ${-dy}px)`;
+                                }
+                            }
+
+                            setTimeout(() => {
+                                this.isProcessing = false;
+                                if (this.pendingBoard) { 
+                                    this.board = this.pendingBoard; 
+                                    this.pendingBoard = null; 
+                                    this.drawGrid(); 
+                                }
+                            }, 350);
+                        }
+                    }
+                }
+                if (data.board) {
+                    if (this.isProcessing || isSwappingAction) {
+                        this.pendingBoard = data.board;
+                    } else {
+                        let newBoardStr = JSON.stringify(data.board);
+                        let oldBoardStr = JSON.stringify(this.board);
+                        if (newBoardStr !== oldBoardStr || this.board.length === 0) {
+                            this.board = data.board;
+                            this.drawGrid();
+                        }
+                    }
+                }
+                if (data.currentTurn) {
+                    let isTurnChanged = (this.currentTurn !== data.currentTurn);
+                    this.currentTurn = data.currentTurn;
+                    let boardEl = document.getElementById('pvp-board');
+                    if (boardEl) { 
+                        boardEl.style.opacity = this.currentTurn === this.playerRole ? "1" : "0.8"; 
+                        boardEl.style.pointerEvents = this.currentTurn === this.playerRole ? "auto" : "none"; 
+                    }
+                    if (isTurnChanged || !this.turnTimer) this.startTurnTimer();
+                }
+                if (data[oppRole]) {
+                    this.oppHp = data[oppRole].hp; this.oppShield = data[oppRole].shield || 0;
+                    let oppHpBar = document.getElementById('pvp-opp-hp-bar'); if(oppHpBar) oppHpBar.style.width = (this.oppHp / this.maxHp * 100) + '%';
+                    let oppHpTxt = document.getElementById('pvp-opp-hp-text'); if(oppHpTxt) oppHpTxt.innerText = `${this.oppHp} / ${this.maxHp}`;
+                    let oppShieldBar = document.getElementById('pvp-opp-shield-bar'); if(oppShieldBar) oppShieldBar.style.width = Math.min(100, (this.oppShield / this.maxHp * 100)) + '%';
+                    if(this.oppHp <= 0) this.declareWin();
+                }
+                if (data[this.playerRole]) {
+                    this.hp = data[this.playerRole].hp; this.shield = data[this.playerRole].shield || 0;
+                    let myHpBar = document.getElementById('pvp-my-hp-bar'); if(myHpBar) myHpBar.style.width = (this.hp / this.maxHp * 100) + '%';
+                    let myHpTxt = document.getElementById('pvp-my-hp-text'); if(myHpTxt) myHpTxt.innerText = `${this.hp} / ${this.maxHp}`;
+                    let myShieldBar = document.getElementById('pvp-my-shield-bar'); if(myShieldBar) myShieldBar.style.width = Math.min(100, (this.shield / this.maxHp * 100)) + '%';
+                    if(this.hp <= 0) this.declareLose();
+                }
+            });
         },
 
         findMatches: function() {
@@ -665,13 +807,31 @@
                 while (colData.length < CONFIG.ROWS) { colData.unshift({ ...PVP_EMOJIS[Math.floor(Math.random() * PVP_EMOJIS.length)] }); }
                 for (let r = 0; r < CONFIG.ROWS; r++) { this.board[r][c] = colData[r]; }
             }
-            this.drawGrid(); window.firebase.database().ref('pvp_rooms/' + this.roomId).update({ board: this.board });
+            
+            // FIX LỖI ĐEN MÀN HÌNH: Tạm tắt khiên khóa để ÉP hệ thống phải vẽ lại các con thú vừa rơi xuống
+            let oldProcessing = this.isProcessing;
+            this.isProcessing = false;
+            this.drawGrid(); 
+            this.isProcessing = oldProcessing;
+
+            window.firebase.database().ref('pvp_rooms/' + this.roomId).update({ board: this.board });
 
             setTimeout(() => {
                 let newMatches = this.findMatches();
-                if (newMatches.length > 0) { if (this.comboCount > 0) this.popText(`COMBO x${this.comboCount + 1}!`, '#ffeb3b'); this.processMatches(newMatches); } 
+                if (newMatches.length > 0) { 
+                    if (this.comboCount > 0) this.popText(`COMBO x${this.comboCount + 1}!`, '#ffeb3b'); 
+                    this.processMatches(newMatches); 
+                } 
                 else {
                     this.isProcessing = false;
+                    
+                    // Nếu mạng lag có bản lưu tạm thì vẽ nốt cho chắc ăn
+                    if (this.pendingBoard) {
+                        this.board = this.pendingBoard;
+                        this.pendingBoard = null;
+                        this.drawGrid();
+                    }
+
                     if (this.currentTurn === this.playerRole) {
                         if (this.extraTurn) { this.popText("THÊM LƯỢT!", "#00ffff"); this.extraTurn = false; this.startTurnTimer(); } 
                         else { this.passTurn(); }
@@ -680,47 +840,8 @@
             }, 300);
         },
 
-        setupSync: function() {
-            let db = window.firebase.database(); let oppRole = this.playerRole === 'host' ? 'guest' : 'host';
-            this.roomRef = db.ref('pvp_rooms/' + this.roomId);
-            
-            this.roomRef.on('value', snap => {
-                if(!snap.exists()) { this.closeArena("Phòng đã bị giải tán!"); return; }
-                let data = snap.val();
-
-                if (data.board) { if (this.currentTurn !== this.playerRole || this.board.length === 0) { this.board = data.board; this.drawGrid(); } }
-
-                if (data.currentTurn) {
-                    let isTurnChanged = (this.currentTurn !== data.currentTurn);
-                    this.currentTurn = data.currentTurn;
-                    let board = document.getElementById('pvp-board');
-                    if (board) { if (this.currentTurn === this.playerRole) { board.style.opacity = "1"; board.style.pointerEvents = "auto"; } else { board.style.opacity = "0.5"; board.style.pointerEvents = "none"; } }
-                    if (isTurnChanged || !this.turnTimer) { this.startTurnTimer(); }
-                }
-
-                if (data[oppRole]) {
-                    this.oppHp = data[oppRole].hp; this.oppShield = data[oppRole].shield || 0;
-                    let txt = document.getElementById('pvp-opp-hp-text'); if(txt) txt.innerText = `${this.oppHp} / ${this.maxHp}`;
-                    let bar = document.getElementById('pvp-opp-hp-bar'); if(bar) bar.style.width = (this.oppHp / this.maxHp * 100) + '%';
-                    let sbar = document.getElementById('pvp-opp-shield-bar'); if(sbar) sbar.style.width = Math.min(100, (this.oppShield / this.maxHp * 100)) + '%';
-                    
-                    if(this.oppHp <= 0) { this.declareWin(); return; }
-                }
-
-                if (data[this.playerRole]) {
-                    this.hp = data[this.playerRole].hp; this.shield = data[this.playerRole].shield || 0;
-                    let txt = document.getElementById('pvp-my-hp-text'); if(txt) txt.innerText = `${this.hp} / ${this.maxHp}`;
-                    let bar = document.getElementById('pvp-my-hp-bar'); if(bar) bar.style.width = (this.hp / this.maxHp * 100) + '%';
-                    let sbar = document.getElementById('pvp-my-shield-bar'); if(sbar) sbar.style.width = Math.min(100, (this.shield / this.maxHp * 100)) + '%';
-                    
-                    if(this.hp <= 0) { this.declareLose(); return; }
-                }
-            });
-        },
-
         popText: function(text, color) {
             let floatEl = document.createElement('div'); floatEl.className = 'dmg-text'; floatEl.innerText = text; floatEl.style.color = color;
-            floatEl.style.top = '40%'; floatEl.style.left = '50%'; floatEl.style.transform = 'translate(-50%, -50%)';
             let wrap = document.getElementById('pvp-overlay-wrap'); if (wrap) wrap.appendChild(floatEl);
             setTimeout(() => { if (floatEl) floatEl.remove(); }, 1000);
         },
@@ -729,32 +850,41 @@
             if (this.isGameOver) return; this.isGameOver = true;
             this.roomRef.off(); if (this.turnTimer) clearInterval(this.turnTimer);
             if(window.playSoundInternal) window.playSoundInternal('win');
+            
             let myCoins = parseInt(localStorage.getItem('pikachu_coins')) || 0;
-            let winAmount = this.roomBet * 2; myCoins += winAmount;
+            let winAmount = this.roomBet; 
+            myCoins += (winAmount * 2); 
+            
             localStorage.setItem('pikachu_coins', myCoins);
             let accId = localStorage.getItem('pikachu_account_id');
             let db = window.firebase.database();
             db.ref('users/' + accId).update({ coins: myCoins });
 
-            window.showCustomAlertInternal(`🏆 TUYỆT VỜI! Đối thủ đã gục ngã.\nBạn nhận được ${winAmount} 💎 Linh Thạch!`, () => {
-                let myName = localStorage.getItem('pikachu_player_name') || "Đại Hiệp";
-                let savedAvt = localStorage.getItem('pikachu_player_avatar');
-                let myAvatar = (savedAvt && !savedAvt.includes("imgur")) ? savedAvt : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=100&bold=true`;
-                let myVipPts = parseInt(localStorage.getItem('pikachu_vip_points')) || 0;
+            this.roomRef.once('value').then(snap => {
+                let data = snap.val();
+                let oppData = this.playerRole === 'host' ? data.guest : data.host;
+                let opponentName = oppData ? (oppData.name || "Ẩn Danh") : "Đối Thủ";
 
-                let wrap = document.getElementById('pvp-overlay-wrap'); if(wrap) wrap.innerHTML = '';
-                
-                this.playerRole = 'host'; 
-                this.hp = this.maxHp; this.shield = 0;
-                
-                let newRoomRef = db.ref('pvp_rooms/' + this.roomId);
-                newRoomRef.onDisconnect().cancel(); 
-                newRoomRef.onDisconnect().remove(); 
-                
-                newRoomRef.set({
-                    status: 'waiting', createdAt: window.firebase.database.ServerValue.TIMESTAMP, bet: this.roomBet, password: '', 
-                    host: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, hp: this.maxHp, shield: 0, ready: true }, guest: null
-                }).then(() => { this.enterWaitingRoom(); });
+                if (window.PvPHistory) { window.PvPHistory.record(opponentName, true, winAmount); }
+
+                window.showCustomAlertInternal(`🏆 TUYỆT VỜI! ${opponentName} đã gục ngã.\nBạn nhận được ${winAmount * 2} 💎 Linh Thạch!`, () => {
+                    let myName = localStorage.getItem('pikachu_player_name') || "Đại Hiệp";
+                    let savedAvt = localStorage.getItem('pikachu_player_avatar');
+                    let myAvatar = (savedAvt && !savedAvt.includes("imgur")) ? savedAvt : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=100&bold=true`;
+                    let myVipPts = parseInt(localStorage.getItem('pikachu_vip_points')) || 0;
+
+                    let wrap = document.getElementById('pvp-overlay-wrap'); if(wrap) wrap.innerHTML = '';
+                    this.playerRole = 'host'; this.hp = this.maxHp; this.shield = 0;
+                    
+                    let newRoomRef = db.ref('pvp_rooms/' + this.roomId);
+                    newRoomRef.onDisconnect().cancel(); 
+                    newRoomRef.onDisconnect().remove(); 
+                    
+                    newRoomRef.set({
+                        status: 'waiting', createdAt: window.firebase.database.ServerValue.TIMESTAMP, bet: this.roomBet, password: '', 
+                        host: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, hp: this.maxHp, shield: 0, ready: true }, guest: null
+                    }).then(() => { this.enterWaitingRoom(); });
+                });
             });
         },
 
@@ -764,14 +894,24 @@
             if(window.playSoundInternal) window.playSoundInternal('lose');
             
             window.firebase.database().ref(`pvp_rooms/${this.roomId}/${this.playerRole}`).onDisconnect().cancel();
-            window.showCustomAlertInternal(`💀 THẤT BẠI!\nBạn đã mất ${this.roomBet} 💎 Linh Thạch cược.`, () => { this.closeArena(); });
+            
+            this.roomRef.once('value').then(snap => {
+                let data = snap.val();
+                let oppData = this.playerRole === 'host' ? data.guest : data.host;
+                let opponentName = oppData ? (oppData.name || "Ẩn Danh") : "Đối Thủ";
+
+                if (window.PvPHistory) { window.PvPHistory.record(opponentName, false, this.roomBet); }
+
+                window.showCustomAlertInternal(`💀 THẤT BẠI!\nBạn đã bị ${opponentName} đánh bại và mất ${this.roomBet} 💎 Linh Thạch.`, () => { 
+                    this.closeArena(); 
+                });
+            });
         },
 
-      closeArena: function(msg) {
+        closeArena: function(msg) {
             if(msg) window.showCustomAlertInternal(msg);
             if (this.turnTimer) clearInterval(this.turnTimer);
             
-           
             if (this.roomId) {
                 try { 
                     window.firebase.database().ref('pvp_rooms/' + this.roomId + '/board').remove(); 
@@ -779,16 +919,11 @@
                 } catch(e){}
             }
 
-           
             let boardEl = document.getElementById('pvp-board');
             if (boardEl) boardEl.innerHTML = '';
 
-          
-            this.board = [];
-            this.roomId = null;
-            this.playerRole = null;
+            this.board = []; this.roomId = null; this.playerRole = null;
 
-           
             let wrap = document.getElementById('pvp-overlay-wrap'); if(wrap) wrap.remove();
             let mMenu = document.getElementById('main-menu-overlay'); if (mMenu) mMenu.classList.remove('hidden');
         }

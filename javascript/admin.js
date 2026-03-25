@@ -1,9 +1,8 @@
 (function() {
-    // 1. Tự động tạo Giao diện Admin khi tải trang
     function createAdminUI() {
         if (document.getElementById('admin-overlay')) return;
         const adminHTML = `
-        <div id="admin-overlay" class="modal-overlay hidden" style="z-index: 100000000; backdrop-filter: blur(10px);">
+        <div id="admin-overlay" class="modal-overlay hidden" style="z-index: 100000000; backdrop-filter: blur(10px); display: flex; justify-content: center; align-items: center; position: fixed; top: 0; left: 0; width: 100%; height: 100%;">
             <div class="modal-content" style="max-width: 800px; width: 95%; background: #1a1a2e; border: 4px solid #9c27b0; border-radius: 15px; padding: 25px; box-shadow: 0 0 50px rgba(156, 39, 176, 0.8);">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #9c27b0; padding-bottom: 15px; margin-bottom: 20px;">
                     <h2 style="color: #e1bee7; text-shadow: 0 0 10px #9c27b0; margin: 0; font-size: 2rem;">⚙️ TRUNG TÂM QUẢN TRỊ ADMIN</h2>
@@ -23,12 +22,11 @@
         });
     }
 
-    // 2. Hàm Mở Bảng Quản Trị & Kéo dữ liệu
     window.openAdminPanel = function() {
         if(window.playSoundInternal) window.playSoundInternal('select');
-        let accId = localStorage.getItem('pikachu_account_id');
-        // Check bảo mật thêm 1 lớp nữa
-        if (accId !== ADMIN_ACCOUNT.toLowerCase()) {
+        let isAdmin = localStorage.getItem('pikachu_is_admin') === 'true';
+        
+        if (!isAdmin) {
             alert("❌ CẢNH BÁO BẢO MẬT: Bạn không có quyền truy cập khu vực này!");
             return;
         }
@@ -68,13 +66,13 @@
                 let dName = data.displayName || "<Chưa đặt tên>";
                 let coins = data.coins || 0;
                 let vipPoints = data.vipPoints || 0;
-
-                // Không hiển thị tài khoản admin để tránh lỡ tay xoá chính mình
-                if (accId === ADMIN_ACCOUNT.toLowerCase()) return;
+                let userIsAdmin = data.isAdmin === true;
+                let idColor = userIsAdmin ? '#ff0000' : '#00ffff';
+                let idText = userIsAdmin ? `${accId} (Admin)` : accId;
 
                 html += `
                 <tr style="border-bottom: 1px solid #333; line-height: 2.5;">
-                    <td style="color: #00ffff; font-weight: bold;">${accId}</td>
+                    <td style="color: ${idColor}; font-weight: bold;">${idText}</td>
                     <td style="color: #fff;">${dName}</td>
                     <td>
                         <span style="color:#ffd700; margin-right: 10px;">💰 ${coins} Xu</span> 
@@ -93,8 +91,6 @@
             listEl.innerHTML = '<p style="text-align:center; color:red;">Lỗi: ' + err.message + '</p>';
         });
     }
-
-    // 3. Các hàm chức năng Quản trị
     window.adminAddCoins = function(accId, currentCoins) {
         if(window.playSoundInternal) window.playSoundInternal('select');
         let amount = prompt(`Nhập số lượng 💰 XU muốn cộng cho tài khoản [${accId}]:\n(Ghi số âm nếu muốn trừ)`, "100");
@@ -126,9 +122,7 @@
             .catch(err => alert("❌ Lỗi xoá: " + err.message));
         }
     };
-
-    // Khởi tạo UI khi trang load xong
     window.addEventListener('load', () => {
-        setTimeout(createAdminUI, 500); // Đợi xíu để load sau các UI chính
+        setTimeout(createAdminUI, 500);
     });
 })();
