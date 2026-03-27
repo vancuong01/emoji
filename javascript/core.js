@@ -1,2 +1,104 @@
-window._THIEN_DAO_AN = "hoangvancuong";
-!function(){const _0xA1="Boss Văn Cường",_0xA2="V1.0";setInterval((function(){const e=[66,111,115,115,32,86,259,110,32,67,432,7901,110,103].map((e=>String.fromCharCode(e))).join(""),t=String.fromCharCode(86,49,46,48);if(_0xA1!==e||_0xA2!==t){try{document.body.innerHTML='<div style="background:#000;color:#ff0000;height:100vh;display:flex;align-items:center;justify-content:center;font-size:3rem;font-weight:bold;text-align:center;">❌ MÃ NGUỒN ĐÃ BỊ ĐÁNH CẮP!</div>',window.requestAnimationFrame=function(){},window.setTimeout=function(){},window.CanvasRenderingContext2D&&(CanvasRenderingContext2D.prototype.drawImage=function(){},CanvasRenderingContext2D.prototype.fillRect=function(){}),window.stop()}catch(n){}}}),500);const _0xS1="TuTien_Tuyet_Mat_Bo_Troi_Moi_Biet_123!@#";function _0xC1(e){let t=String(e)+_0xS1,n=0;for(let o=0;o<t.length;o++){let i=t.charCodeAt(o);n=(n<<5)-n+i,n&=n}return n.toString(36)}window.SecureStorage={setItem:function(e,t){localStorage.setItem(e,t),localStorage.setItem(e+"_seal",_0xC1(t))},getItem:function(e,t=0){let n=localStorage.getItem(e),o=localStorage.getItem(e+"_seal");if(null!==n){if(_0xC1(n)===o)return n;console.warn("[CẢNH BÁO] Phát hiện tà tu sửa đổi "+e+"! Đang tiến hành thiên phạt..."),localStorage.removeItem(e),localStorage.removeItem(e+"_seal"),alert("⛔ PHÁT HIỆN GIAN LẬN: Chỉ số đã bị can thiệp!"),window.location.reload()}return t}};const _0xSec={init:function(){this.dS(),this.dL(),this.pC(),this.aD()},dS:function(){document.addEventListener("contextmenu",(e=>e.preventDefault())),document.addEventListener("keydown",(e=>{"F12"!==e.key&&(!e.ctrlKey||!e.shiftKey||"I"!==e.key&&"i"!==e.key&&"J"!==e.key&&"j"!==e.key&&"C"!==e.key&&"c"!==e.key)&&(!e.ctrlKey||"U"!==e.key&&"u"!==e.key)&&(!e.ctrlKey||"S"!==e.key&&"s"!==e.key)||(e.preventDefault(),window.showCustomAlertInternal?window.showCustomAlertInternal("⚠️ Đừng cố nhìn trộm bí kíp!"):alert("Cảnh báo: Không được dùng phím tắt này!"))}))},aD:function(){setInterval((function(){!function(){return!1}.constructor("debugger")()}),50)},dL:function(){const e=["localhost","127.0.0.1","ten-mien-cua-sep.com"];let t=window.location.hostname;!e.includes(t)&&""!==t&&(document.body.innerHTML='<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background-color:#000;color:red;text-align:center;"><h1 style="font-size:3rem;margin-bottom:20px;">⛔ MÃ NGUỒN ĐÃ BỊ ĐÁNH CẮP!</h1><p style="font-size:1.5rem;color:#fff;">Vui lòng chơi tại trang chính thức của <b>'+_0xA1+"</b>.</p></div>")},pC:function(){setTimeout(console.log.bind(console,"%c⛔ DỪNG LẠI NGAY!","color:red;font-size:50px;font-weight:bold;text-shadow:2px 2px 0 #000")),setTimeout(console.log.bind(console,"%cKhu vực của Thiên Đạo. Dùng tool hack sẽ bị ban IP!","font-size:18px;color:#ffeb3b"))}},_0xFL={f:["javascript/script.js","javascript/khung.js","javascript/profile.js","javascript/daigia.js","javascript/chat.js","javascript/nhiemvu.js","javascript/lichsu.js","javascript/pvp.js"],i:0,init:function(){console.log("Đang khởi động Thiên Đạo Trận..."),this.lN()},lN:function(){if(this.i>=this.f.length)return console.log("%c[Thiên Đạo] Toàn bộ bí tịch đã tải xong!","color:#00ff00;font-size:14px;font-weight:bold"),void("function"==typeof window.onload&&window.onload());let e=document.createElement("script");e.src=this.f[this.i],e.onload=()=>{this.i++,e.remove(),this.lN()},e.onerror=()=>{alert("❌ Trận pháp hỏng! Lỗi tải: "+this.f[this.i])},document.body.appendChild(e)}};window.addEventListener("DOMContentLoaded",(()=>{_0xSec.init(),_0xFL.init()}))}();
+/* ========================================================
+ * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
+ * TÊN FILE: core.js (Hộ Tông Đại Trận - Anti Hack/Cheat)
+ * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
+ * ======================================================== */
+(function() {
+    // ----------------------------------------------------
+    // TRẬN PHÁP 1: KHÓA CHẶT CỬA VÀO (CHẶN F12, CHUỘT PHẢI)
+    // ----------------------------------------------------
+    
+    // Chặn chuột phải (Không cho Inspect Element)
+    document.addEventListener('contextmenu', event => {
+        event.preventDefault();
+        antiCheatWarn("Khu vực cấm! Không thể dùng thần thức (Chuột phải) dò xét!");
+    });
+
+    // Chặn các phím tắt nguy hiểm
+    document.addEventListener('keydown', function(e) {
+        // Chặn F12
+        if (e.keyCode === 123) {
+            e.preventDefault();
+            antiCheatWarn("Kẻ gian định phá giải Hộ Tông Đại Trận (F12)? Vô ích!");
+            return false;
+        }
+        // Chặn Ctrl+Shift+I (Mở DevTools)
+        if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+            e.preventDefault();
+            antiCheatWarn("Nghiệt súc, dám dùng ma pháp Ctrl+Shift+I à?");
+            return false;
+        }
+        // Chặn Ctrl+Shift+J (Mở Console)
+        if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+            e.preventDefault();
+            antiCheatWarn("Ma đạo Ctrl+Shift+J không có tác dụng ở đây!");
+            return false;
+        }
+        // Chặn Ctrl+U (View Source - Xem mã nguồn)
+        if (e.ctrlKey && e.keyCode === 85) {
+            e.preventDefault();
+            antiCheatWarn("Định trộm bí kíp (Ctrl+U) sao? Nằm mơ!");
+            return false;
+        }
+    });
+
+    // ----------------------------------------------------
+    // TRẬN PHÁP 2: LỜI NGUYỀN "PHẢN PHỆ" (DEBUGGER TRAP)
+    // ----------------------------------------------------
+    // Nếu tà tu dùng mưu hèn kế bẩn mở được F12 trước khi vào web,
+    // Trận pháp này sẽ làm trình duyệt của hắn bị kẹt vĩnh viễn, không thể gõ lệnh hack.
+    
+    setInterval(function() {
+        let before = new Date().getTime();
+        
+        // CẢNH BÁO CHO SẾP: Khi SẾP muốn tự mở F12 để code, 
+        // hãy thêm dấu // vào trước chữ debugger dưới đây để tắt bẫy nhé!
+        debugger; 
+        
+        let after = new Date().getTime();
+        if (after - before > 100) {
+            // Phát hiện có người đang mở F12 và bị kẹt ở lệnh debugger
+            document.body.innerHTML = `
+                <div style="background:#000; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; color:red; font-family:sans-serif;">
+                    <div style="font-size: 5rem;">☠️</div>
+                    <h1 style="text-shadow: 0 0 20px red;">PHÁT HIỆN TÀ TU HACK GAME!</h1>
+                    <p style="color: #fff; font-size:1.2rem;">Thiên Đạo đã ghi nhận IP của ngươi. Trình duyệt đã bị đóng băng!</p>
+                </div>
+            `;
+        }
+    }, 1000);
+
+    // ----------------------------------------------------
+    // TRẬN PHÁP 3: CẢNH BÁO TẠI BẢNG ĐIỀU KHIỂN (CONSOLE)
+    // ----------------------------------------------------
+    setTimeout(() => {
+        console.clear();
+        console.log("%c⚡ DỪNG LẠI NGAY! ⚡", "color: red; font-size: 50px; font-weight: bold; text-shadow: 2px 2px 0 #fff;");
+        console.log("%cKhu vực này là cấm địa của Tông Môn. Mọi hành vi dùng mã lệnh can thiệp vào chỉ số (Hack/Cheat) đều bị Thiên Đạo (Firebase) ghi lại và khóa tài khoản vĩnh viễn!", "color: yellow; font-size: 18px; font-weight: bold; background: #000; padding: 10px; border-radius: 5px;");
+        console.log("%cCode by Văn Cường", "color: #00ffff; font-size: 14px; font-style: italic;");
+    }, 2000);
+
+    // ----------------------------------------------------
+    // TRẬN PHÁP 4: CHỐNG SỬA LOCALSTORAGE BẰNG LỆNH CƠ BẢN
+    // ----------------------------------------------------
+    // Chặn bọn trẻ trâu gõ: localStorage.setItem('pikachu_coins', 9999999)
+    const originalSetItem = localStorage.setItem;
+    localStorage.setItem = function(key, value) {
+        // Chỉ cho phép hệ thống game lưu những biến có chữ 'pikachu_'
+        // Nếu ai đó gõ lệnh bậy bạ ngoài hệ thống, chặn luôn!
+        if (key.includes('pikachu_')) {
+            originalSetItem.apply(this, arguments);
+        } else {
+            console.error("⛔ Hành vi mờ ám bị từ chối!");
+        }
+    };
+
+    // Hàm gọi thông báo hiển thị
+    function antiCheatWarn(msg) {
+        if (window.showCustomAlertInternal) {
+            window.showCustomAlertInternal(msg);
+        } else {
+            alert(msg);
+        }
+    }
+})();

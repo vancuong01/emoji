@@ -43,7 +43,6 @@ window.getVipLevelInfo = function(vipPoints) {
     return { level: 0, name: "Phàm Nhân", color: "#888888" }; 
 };
 
-// Thêm biến skipSync để chống lặp vô hạn khi tự gọi lại chính nó
 window.showMainMenu = function(skipSync = false) {
     let gc = document.querySelector('.game-container'); if (gc) gc.style.display = 'none';
 
@@ -55,86 +54,118 @@ window.showMainMenu = function(skipSync = false) {
     let existingMenu = document.getElementById('main-menu-overlay'); 
     if (existingMenu) existingMenu.remove();
     
-    // --- DIỆT CHỮ UNDEFINED VÀ TẠO AVATAR CHUẨN ---
     let avatarSrc = localStorage.getItem('pikachu_player_avatar');
     if (!avatarSrc || avatarSrc === 'undefined' || avatarSrc === 'null' || avatarSrc.includes('imgur.com')) { 
         let safeName = encodeURIComponent(playerName || 'Boss'); 
         avatarSrc = `https://ui-avatars.com/api/?name=${safeName}&background=random&color=fff&size=100&bold=true`; 
     }
-    // Cập nhật Avatar cho bảng Cột Trái (lúc vào chơi Game Pikachu)
     let inGameAvatar = document.getElementById('avatar-img');
-    if (inGameAvatar) {
-        inGameAvatar.src = avatarSrc;
-    }
+    if (inGameAvatar) inGameAvatar.src = avatarSrc;
     
     let vipPts = localStorage.getItem('pikachu_vip_points') || 0;
     let vipInfo = window.getVipLevelInfo(vipPts);
     
-    // --- KIỂM TRA QUYỀN ADMIN TỪ LOCALSTORAGE ---
     let isAdmin = localStorage.getItem('pikachu_is_admin') === 'true';
     if (isAdmin) { vipInfo = { level: 10, name: "Tiên Nhân", color: "#ff0000", glow: "0 0 20px #ff0000" }; }
 
-    let glowClass = vipInfo.level > 0 ? 'vip-glow-frame' : '';
     let textGlowClass = vipInfo.level > 0 ? 'vip-glow-text' : '';
-    let adminBtnHTML = isAdmin ? `<button id="btn-admin-panel" style="background: #9c27b0; border: 1px solid #e1bee7; color: #fff; font-size: 0.8rem; padding: 5px 8px; border-radius: 5px; cursor: pointer; margin-top: 5px; width: 100%;">⚙️ Admin Panel</button>` : "";
+    let adminBtnHTML = isAdmin ? `<button id="btn-admin-panel" class="grid-btn span-2" style="background:#9c27b0; border-color:#e1bee7; margin-top:8px;">⚙️ Admin Panel</button>` : "";
 
     let currentFrame = localStorage.getItem('pikachu_equipped_frame') || 'none';
-    
-    let avatarWithFrameHTML = '';
-    if (window.renderAvatarWithFrame) {
-        avatarWithFrameHTML = window.renderAvatarWithFrame(avatarSrc, currentFrame, vipInfo.color, 60); 
-    } else {
-        avatarWithFrameHTML = `<img src="${avatarSrc}" style="width: 60px; height: 60px; border-radius: 50%; border: 3px solid ${vipInfo.color}; object-fit: cover;">`;
-    }
+    let avatarWithFrameHTML = window.renderAvatarWithFrame ? window.renderAvatarWithFrame(avatarSrc, currentFrame, vipInfo.color, 90) : `<img src="${avatarSrc}" style="width: 90px; height: 90px; border-radius: 50%; border: 3px solid ${vipInfo.color}; object-fit: cover;">`;
 
     const menuHTML = `
-    <div id="main-menu-overlay" style="z-index: 999999; background: radial-gradient(circle, #8b5a2b, #3e2723); display: flex; flex-direction: column; align-items: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; box-sizing: border-box; overflow-y: auto; padding: 20px;">
-        <div style="display: flex; width: 100%; max-width: 1200px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 15px;">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; z-index: 10;">
-                <button id="btn-shop-open" style="background: linear-gradient(to bottom, #4caf50, #2e7d32); border: 3px solid #69f0ae; color: #fff; font-weight: bold; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);">🛒 CỬA HÀNG</button>
-                <button id="btn-menu-wealth" style="background: linear-gradient(to bottom, #1a237e, #000000); border: 3px solid #00ffff; color: #00ffff; font-weight: bold; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; box-shadow: 0 0 15px rgba(0,255,255,0.6);">💰 ĐẠI GIA</button>
-                <button id="btn-menu-nhiemvu" style="background: linear-gradient(to bottom, #f57f17, #e65100); border: 3px solid #ffcc80; color: #fff; font-weight: bold; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; box-shadow: 0 0 15px rgba(255, 152, 0, 0.6);">📜 NHIỆM VỤ</button>
-                <button id="btn-menu-friends" style="background: linear-gradient(to bottom, #00838f, #4a148c); border: 3px solid #e040fb; color: #fff; font-weight: bold; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; box-shadow: 0 0 15px rgba(224, 64, 251, 0.6);">👥 HẢO HỮU</button>
+    <style>
+        #main-menu-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle at center, #2e1a10 0%, #0a0503 100%); z-index: 999999; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; font-family: sans-serif; }
+        .lobby-header { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; align-items: flex-start; }
+        .btn-group-top { display: flex; gap: 10px; flex-wrap: wrap; flex: 1; }
+        .top-btn { padding: 10px 18px; border-radius: 8px; font-weight: bold; cursor: pointer; color: #fff; text-shadow: 1px 1px 2px #000; border: 2px solid rgba(255,255,255,0.2); box-shadow: 0 4px 6px rgba(0,0,0,0.5); transition: 0.2s; font-size: 1rem; }
+        .top-btn:hover { transform: translateY(-3px); filter: brightness(1.2); }
+        .btn-shop { background: linear-gradient(135deg, #2e7d32, #1b5e20); border-color: #4caf50; }
+        .btn-wealth { background: linear-gradient(135deg, #0277bd, #000000); border-color: #00e5ff; }
+        .btn-quest { background: linear-gradient(135deg, #ef6c00, #e65100); border-color: #ff9800; }
+        .btn-friend { background: linear-gradient(135deg, #7b1fa2, #4a148c); border-color: #e040fb; }
+        
+        .profile-glass { background: rgba(0,0,0,0.6); border: 2px solid ${vipInfo.color}; border-radius: 15px; padding: 15px 20px; display: flex; gap: 20px; align-items: center; box-shadow: 0 0 15px rgba(255,0,0,0.5); backdrop-filter: blur(5px); }
+        
+        .profile-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; width: 100%; min-width: 250px; }
+        .grid-btn { padding: 8px 5px; border-radius: 6px; border: 1px solid; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.5); font-size: 0.95rem; transition: 0.2s; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
+        .grid-btn:hover { transform: translateY(-2px) scale(1.02); filter: brightness(1.2); }
+        .span-2 { grid-column: span 2; }
+        
+        .lobby-center { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; margin-top: 20px; }
+        .main-title { font-size: clamp(3.5rem, 8vw, 6rem); font-weight: 900; color: #fff; text-shadow: 0 0 20px #ff9800, 0 0 40px #ff5252; letter-spacing: 5px; margin-bottom: 5px; line-height: 1.1; }
+        .sub-title { font-size: clamp(1.2rem, 3vw, 2rem); color: #fff; letter-spacing: 10px; text-shadow: 0 0 10px #fff; margin-bottom: 40px; text-transform: uppercase; font-weight:bold; }
+        
+        .action-grid { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 350px; }
+        .big-btn { padding: 15px; border-radius: 30px; font-weight: bold; font-size: 1.2rem; color: #fff; cursor: pointer; border: 2px solid rgba(255,255,255,0.3); transition: 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); text-transform: uppercase; text-shadow: 1px 1px 2px #000; }
+        .big-btn:hover { transform: scale(1.05); }
+        .btn-play { background: none; font-size: 5rem; padding: 0; border: none; box-shadow: none; filter: drop-shadow(0 0 10px #fff); }
+        .btn-pvp { background: linear-gradient(to right, #870000, #190a05); border-color: #ff5252; }
+        .btn-rank { background: linear-gradient(to right, #8e44ad, #2c3e50); border-color: #e040fb; }
+        .btn-history { background: linear-gradient(to right, #373b44, #4286f4); border-color: #90a4ae; }
+
+        @media (max-width: 768px) {
+            .lobby-header { flex-direction: column-reverse; align-items: center; }
+            .btn-group-top { justify-content: center; }
+            .profile-glass { width: 100%; justify-content: center; flex-direction: column; text-align: center; }
+            .profile-glass > div:first-child { text-align: center !important; width: 100%; }
+            .profile-glass > div:first-child > div:nth-child(2) { justify-content: center !important; }
+        }
+    </style>
+
+    <div id="main-menu-overlay">
+        <div class="lobby-header">
+            <div class="btn-group-top">
+                <button id="btn-shop-open" class="top-btn btn-shop">🛒 CỬA HÀNG</button>
+                <button id="btn-menu-wealth" class="top-btn btn-wealth">💰 ĐẠI GIA</button>
+                <button id="btn-menu-nhiemvu" class="top-btn btn-quest">📜 NHIỆM VỤ</button>
+                <button id="btn-menu-friends" class="top-btn btn-friend">👥 HẢO HỮU</button>
             </div>
             
-            <div class="${glowClass}" style="background: rgba(0,0,0,0.6); padding: 10px 15px; border-radius: 15px; border: 2px solid ${vipInfo.color}; display: flex; align-items: center; gap: 15px; box-shadow: ${vipInfo.glow}; --vip-color: ${vipInfo.color}; z-index: 10;">
-                <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
-                    <div style="color: #00ffff; font-size: 0.9rem; margin-bottom: 5px;">ID: ${accId}</div>
+            <div class="profile-glass">
+                <div style="text-align: right; flex: 1;">
+                    <div style="color: #00ffff; font-size: 1.1rem; margin-bottom: 5px; font-weight: bold; text-shadow: 1px 1px 2px #000;">Đạo Hữu</div>
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+                        <span style="font-size:0.75rem; background: ${vipInfo.color}; color:#000; padding:3px 8px; border-radius:4px; font-weight:bold; box-shadow: 0 0 5px ${vipInfo.color}; text-transform: uppercase;">${vipInfo.name}</span>
+                        <span class="name-txt ${textGlowClass}" style="color: ${vipInfo.color}; font-size: 1.4rem; font-weight: bold; text-shadow: 1px 1px 2px #000;">${playerName}</span>
+                    </div>
                     
-                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-bottom: 8px;">
-                        <span style="font-size:0.75rem; background: ${vipInfo.color}; color:#000; padding:3px 8px; border-radius:4px; font-weight:bold; box-shadow: 0 0 5px ${vipInfo.color}; white-space: nowrap; text-transform: uppercase;">${vipInfo.name}</span>
-                        <span class="name-txt ${textGlowClass}" style="color: ${vipInfo.color}; font-size: 1.4rem; font-weight: bold; font-family: 'Times New Roman', serif; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; --vip-color: ${vipInfo.color};">${playerName}</span>
+                    <div class="profile-actions-grid">
+                        <button id="btn-world-map" class="grid-btn" onclick="if(window.playSoundInternal) window.playSoundInternal('select'); if(window.WorldSystem) window.WorldSystem.openLobby(); else alert('Thiếu file world.js');" style="background: linear-gradient(to bottom, #1b5e20, #003300); color:#00ff88; border-color:#00e676;">🌍 Vạn Giới</button>
+                        
+                        <button id="btn-class-system" class="grid-btn" onclick="if(window.playSoundInternal) window.playSoundInternal('select'); if(window.ClassSystem) window.ClassSystem.showStatsPanel(); else alert('Thiếu file character.js');" style="background: linear-gradient(to bottom, #8e44ad, #5e2a75); color: #fff; border-color:#e1bee7;">☯️ Nhân Vật</button>
+                        
+                        <button id="btn-guild" class="grid-btn" onclick="if(window.playSoundInternal) window.playSoundInternal('select'); if(window.GuildSystem) window.GuildSystem.openGuildLobby(); else alert('Thiếu file guild.js');" style="background: linear-gradient(to bottom, #8b4513, #5c2e0b); color:#ffd700; border-color:#d4af37;">🏛️ Tông Môn</button>
+                        
+                        <button id="btn-chat" class="grid-btn" onclick="if(window.playSoundInternal) window.playSoundInternal('select'); if(window.ChatSystem) window.ChatSystem.openLobby(); else alert('Thiếu file chat.js');" style="background: linear-gradient(to bottom, #006064, #00363a); color:#00ffff; border-color:#00ffff;">💬 Truyền Âm</button>
+                        
+                        <button id="btn-logout" class="grid-btn span-2" onclick="localStorage.removeItem('pikachu_is_admin'); if(window.logout) window.logout()" style="background: linear-gradient(to bottom, #d32f2f, #b71c1c); color: white; border-color:#ff5252;">🚪 Đăng Xuất</button>
+                        
+                        ${adminBtnHTML}
                     </div>
-
-                    <div class="mm-actions" style="display: flex; gap: 5px; justify-content: flex-end; align-items: center;">
-                        <button onclick="localStorage.removeItem('pikachu_is_admin'); if(window.logout) window.logout()" style="background: #d32f2f; color: white; border: 1px solid #fff; padding: 4px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 0.85rem; box-shadow: 0 2px 5px rgba(0,0,0,0.5);">Đăng Xuất</button>
-                    </div>
-                    ${adminBtnHTML}
                 </div>
-                
-                <div style="position: relative; cursor: pointer; transition: 0.2s;" id="btn-change-avatar" title="Bấm để mở Hồ Sơ">
+                <div id="btn-change-avatar" style="cursor: pointer; position:relative; z-index:5;" title="Xem Hồ Sơ">
                     ${avatarWithFrameHTML}
                 </div>
             </div>
         </div>
-        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; padding-bottom: 20px; margin-top: 20px;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: clamp(3rem, 8vw, 5rem); font-weight: bold; text-shadow: 5px 5px 0 #000; margin-bottom: 20px; letter-spacing: 5px; line-height: 1.1;">
-                    <span style="color: #ffd700;">E</span><span style="color: #ffa500;">M</span><span style="color: #ffd700;">O</span><span style="color: #ffa500;">J</span><span style="color: #ffd700;">I</span><br><span style="font-size: clamp(1.5rem, 4vw, 2rem); color: #fff; text-shadow: 2px 2px 0 #000;">VĂN CƯỜNG</span>
-                </div>
-                <div style="animation: bounce 2s infinite;"><span style="font-size: clamp(4rem, 10vw, 8rem);">🎮</span></div>
-            </div>
-            <div style="display: flex; flex-direction: column; gap: clamp(10px, 2vh, 20px); align-items: center;">
-                <button id="btn-menu-start" style="background: radial-gradient(circle, #ffd700, #ff8c00); border: 4px solid #fff; color: #000; font-weight: bold; padding: 20px 40px; border-radius: 50px; cursor: pointer; font-size: clamp(1.5rem, 5vw, 2.5rem); box-shadow: 0 10px 20px rgba(0,0,0,0.6); transition: transform 0.1s; text-shadow: 2px 2px 0 #fff; width: 100%;">CHƠI</button>
-                <button id="btn-menu-pvp" class="pvp-btn" style="background: linear-gradient(to right, #d32f2f, #b71c1c); border: 3px solid #ffeb3b; border-radius: 30px; padding: clamp(8px, 1.5vh, 15px) clamp(20px, 5vw, 50px); font-size: clamp(1.1rem, 3.5vw, 1.6rem); font-weight: bold; color: #fff; cursor: pointer; box-shadow: 0 5px 15px rgba(211,47,47,0.6); transition: 0.2s; text-shadow: 1px 1px 2px #000; width: 100%;">⚔️ VÕ ĐÀI PVP</button>
-                <button id="btn-menu-history" style="background: linear-gradient(to right, #455a64, #263238); border: 3px solid #90a4ae; border-radius: 30px; padding: clamp(8px, 1.5vh, 15px) clamp(20px, 5vw, 50px); font-size: clamp(1.1rem, 3.5vw, 1.6rem); font-weight: bold; color: #fff; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.6); transition: 0.2s; text-shadow: 1px 1px 2px #000; width: 100%;">📜 LỊCH SỬ PVP</button>
-                <button id="btn-menu-ranking" style="background: linear-gradient(to bottom, #8b4513, #5c2e0b); border: 3px solid #d4af37; color: #ffd700; font-weight: bold; padding: 15px 40px; border-radius: 12px; cursor: pointer; font-size: clamp(1.2rem, 3vw, 1.5rem); box-shadow: 0 6px 10px rgba(0,0,0,0.5); transition: transform 0.1s; width: 100%;">🏆 BẢNG PHONG THẦN</button>
+        
+        <div class="lobby-center">
+            <div class="main-title">EMOJI</div>
+            <div class="sub-title">VĂN CƯỜNG</div>
+            
+            <button id="btn-menu-start" class="big-btn btn-play">🎮</button>
+            <div style="margin-top: 20px; width:100%; max-width:350px; display:flex; flex-direction:column; gap:15px;">
+                <button id="btn-menu-pvp" class="big-btn btn-pvp">⚔️ VÕ ĐÀI PVP</button>
+                <button id="btn-menu-ranking" class="big-btn btn-rank">🏆 BẢNG PHONG THẦN</button>
+                <button id="btn-menu-history" class="big-btn btn-history">📜 LỊCH SỬ PVP</button>
             </div>
         </div>
-    </div>`;
+    </div>
+    `;
     document.body.insertAdjacentHTML('beforeend', menuHTML);
 
-    // Xử lý sự kiện các nút
     document.getElementById('btn-menu-ranking').addEventListener('click', () => { window.playSoundInternal('select'); if(window.showLeaderboardInternal) window.showLeaderboardInternal(); });
     document.getElementById('btn-menu-start').addEventListener('click', () => { window.playSoundInternal('select'); let diffModal = document.getElementById('difficulty-modal'); if (diffModal) diffModal.classList.remove('hidden'); });
     document.getElementById('btn-shop-open').addEventListener('click', () => { if(window.openShopPanel) window.openShopPanel(); else window.showCustomAlertInternal("Lỗi Cửa hàng!"); });
@@ -149,7 +180,6 @@ window.showMainMenu = function(skipSync = false) {
     if(btnFriends) btnFriends.addEventListener('click', () => { 
         if(window.playSoundInternal) window.playSoundInternal('select'); 
         if(window.FriendSystem) window.FriendSystem.openLobby(); 
-        else window.showCustomAlertInternal("Hệ thống Bạn bè đang nâng cấp!"); 
     });
 
     let btnHistory = document.getElementById('btn-menu-history');
@@ -172,10 +202,8 @@ window.showMainMenu = function(skipSync = false) {
     if(btnNhiemVu) btnNhiemVu.addEventListener('click', () => { 
         if(window.playSoundInternal) window.playSoundInternal('select'); 
         if(window.DailyQuest) window.DailyQuest.open(); 
-        else alert("Thiếu file nhiemvu.js sếp ơi!");
     });
 
-    // --- ĐỒNG BỘ DỮ LIỆU NGẦM (CHỐNG KẸT F5 LÚC LOGIN) ---
     if (!skipSync && window.db && accId) {
         window.db.ref('users/' + accId).once('value').then(snap => {
             if (snap.exists()) {
@@ -183,27 +211,21 @@ window.showMainMenu = function(skipSync = false) {
                 let realIsAdmin = d.isAdmin === true;
                 let localIsAdmin = localStorage.getItem('pikachu_is_admin') === 'true';
                 
-                // Đồng bộ cờ từ Firebase về máy
-                if (realIsAdmin) {
-                    localStorage.setItem('pikachu_is_admin', 'true');
-                } else {
-                    localStorage.removeItem('pikachu_is_admin');
-                }
+                if (realIsAdmin) localStorage.setItem('pikachu_is_admin', 'true');
+                else localStorage.removeItem('pikachu_is_admin');
 
-                // Nếu phát hiện có sự thay đổi quyền (Ví dụ vừa log nick Admin vào), tự động vẽ lại UI
                 if (realIsAdmin !== localIsAdmin) {
-                    window.showMainMenu(true); // truyền true để bỏ qua vòng lặp check ngầm
+                    window.showMainMenu(true);
                 }
             }
         }).catch(err => console.log("Lỗi đồng bộ ngầm: ", err));
     }
-}
+};
 
 window.onload = function() {
     let gc = document.querySelector('.game-container'); if(gc) gc.style.display = 'none';
     let btnRestart = document.getElementById('restart-btn'); if(btnRestart) btnRestart.style.display = 'none';
 
-    // Bơm tạm biến rỗng để chống sập nếu các file .js khác của sếp lỡ gọi đến
     window.ADMIN_ACCOUNT = window.ADMIN_ACCOUNT || ""; 
 
     let savedAcc = localStorage.getItem('pikachu_account_id'); 
@@ -220,11 +242,8 @@ window.onload = function() {
                     localStorage.setItem('pikachu_inv_hints', d.invHints || 0);
                     localStorage.setItem('pikachu_inv_shuffles', d.invShuffles || 0);
                     
-                    if (d.isAdmin) {
-                        localStorage.setItem('pikachu_is_admin', 'true');
-                    } else {
-                        localStorage.removeItem('pikachu_is_admin');
-                    }
+                    if (d.isAdmin) localStorage.setItem('pikachu_is_admin', 'true');
+                    else localStorage.removeItem('pikachu_is_admin');
 
                     if (d.avatar) localStorage.setItem('pikachu_player_avatar', d.avatar);
                     if (d.frame) localStorage.setItem('pikachu_equipped_frame', d.frame); 
@@ -232,7 +251,7 @@ window.onload = function() {
                 window.showMainMenu();
             })
             .catch(error => {
-                console.error("⚠️ Lỗi gọi Firebase (Có thể do Rules chặn đọc data):", error);
+                console.error("⚠️ Lỗi gọi Firebase:", error);
                 window.showMainMenu();
             });
         } else { 

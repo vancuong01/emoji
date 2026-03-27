@@ -1,6 +1,7 @@
 /* ========================================================
  * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
  * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
+ * MÔ TẢ: HỆ THỐNG ESPORTS PVP (TÍCH HỢP HỆ PHÁI & TUYỆT CHIÊU)
  * ======================================================== */
 
 (function() {
@@ -19,6 +20,15 @@
         { type: 'freeze', icon: '❄️', name: 'Băng❄️', value: 0 }      
     ];
     const CONFIG = { ROWS: 7, COLS: 7 }; 
+
+    // CHỈ SỐ MÁU CƠ BẢN & TĂNG TRƯỞNG THEO HỆ PHÁI
+    const CLASS_BASE_STATS = {
+        'kiemtu': { hp: 100, hpG: 15, name: 'Kiếm Tu' },
+        'phaptu': { hp: 80, hpG: 10, name: 'Pháp Tu' },
+        'hophap': { hp: 200, hpG: 25, name: 'Hộ Pháp' },
+        'thetu': { hp: 150, hpG: 20, name: 'Thể Tu' },
+        'phuthuy': { hp: 90, hpG: 12, name: 'Phù Thủy' }
+    };
 
     const pvpStyles = `
         .pvp-room-list { max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 5px; }
@@ -39,10 +49,14 @@
         .pvp-badge-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         .pvp-badge-wrap.reverse { align-items: flex-start; }
         
-        .pvp-match3-board { display: grid; grid-template-columns: repeat(${CONFIG.COLS}, 1fr); gap: 2px; width: min(95vw, 60vh); aspect-ratio: 1; background: #2c1a0c; padding: 5px; border: 3px solid #3e2723; border-radius: 12px; margin: 0 auto; box-shadow: inset 0 0 20px #000; transition: opacity 0.3s; position: relative; }
-        .pvp-center-col { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .pvp-match3-board { display: grid; grid-template-columns: repeat(${CONFIG.COLS}, 1fr); gap: 2px; width: min(95vw, 60vh); aspect-ratio: 1; background: #2c1a0c; padding: 5px; border: 3px solid #3e2723; border-radius: 12px; margin: 0 auto; box-shadow: inset 0 0 20px #000; transition: opacity 0.3s, filter 0.3s; position: relative; }
+        .pvp-center-col { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; }
         
-        /* HIỆU ỨNG TRÁO ĐỔI (SWAP) */
+        /* HIỆU ỨNG ĐÓNG BĂNG TUYỆT CHIÊU PHÁP TU */
+        .frozen-board { filter: hue-rotate(180deg) saturate(2) brightness(1.2); border-color: #00ffff !important; pointer-events: none; }
+        .frozen-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0, 255, 255, 0.2); border-radius: 10px; z-index: 100; display: none; justify-content: center; align-items: center; font-size: 4rem; text-shadow: 0 0 20px #00ffff; }
+        .frozen-board .frozen-overlay { display: flex; }
+
         .pvp-tile-m3 { 
             background: #3e2723; border-radius: 8px; border: 1px solid #6f4e2a; 
             display: flex; justify-content: center; align-items: center; 
@@ -54,7 +68,6 @@
         .pvp-tile-m3.selected { background: #ffeb3b; border: 2px solid #ffeb3b; box-shadow: 0 0 15px #ffeb3b; transform: scale(1.1); z-index: 10; }
         .pvp-tile-m3.swapping { z-index: 100 !important; }
 
-        /* HUYẾT ẤN KHI ĐỊCH CHỌN Ô */
         .opp-selecting { 
             animation: opp-select-flash 0.8s alternate infinite ease-in-out !important; 
             z-index: 9 !important; border: 4px solid #ff0000 !important; 
@@ -68,7 +81,6 @@
         .pvp-tile-m3.explode { animation: explode-anim 0.3s forwards; }
         @keyframes explode-anim { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.8; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
         
-        /* ĐÃ THÊM: HIỆU ỨNG LẤP CHỖ TRỐNG SAU KHI NỔ */
         .tile-drop-anim { animation: tileDropAnim 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes tileDropAnim { 0% { transform: translateY(-100px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
 
@@ -77,6 +89,11 @@
         .shield-bar-fill { height: 100%; background: linear-gradient(90deg, #0091ea, #00e5ff); position: absolute; top: 0; left: 0; z-index: 5; transition: width 0.3s ease-out; }
         .dmg-text { position: absolute; font-size: 3rem; font-weight: bold; text-shadow: 2px 2px 0 #000, 0 0 10px #000; pointer-events: none; z-index: 99999; animation: floatM3 1s forwards; left: 50%; top: 40%; transform: translate(-50%, -50%); }
         @keyframes floatM3 { 0% { transform: translate(-50%, 0) scale(0.5); opacity: 1; } 50% { transform: translate(-50%, -40px) scale(1.2); opacity: 1; } 100% { transform: translate(-50%, -80px) scale(1); opacity: 0; } }
+
+        .g-btn { border: 1px solid #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; color: #fff; font-size: 0.85rem; }
+        .g-btn:hover { filter: brightness(1.2); }
+        .btn-ult-ready { background: linear-gradient(to right, #ff9800, #ff5252) !important; animation: ult-pulse 1s infinite alternate; box-shadow: 0 0 15px #ff5252; opacity: 1 !important; pointer-events: auto !important; }
+        @keyframes ult-pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
 
         @media screen and (orientation: landscape) and (max-height: 800px), screen and (min-width: 800px) {
             .pvp-arena-container { flex-direction: row; max-width: 1400px; justify-content: center; align-items: center; overflow: hidden; padding: 15px; gap: 30px; }
@@ -94,6 +111,7 @@
         let style = document.createElement('style'); style.id = 'pvp-match3-styles';
         style.innerHTML = pvpStyles; document.head.appendChild(style);
     }
+
     window.showCustomConfirmInternal = function(message, onYes, onNo) {
         if (!document.getElementById('custom-confirm-overlay')) {
             const html = `
@@ -143,10 +161,26 @@
     };
 
     window.PvP = {
-        roomId: null, playerRole: null, hp: 100, maxHp: 100, shield: 0, oppHp: 100, oppShield: 0,
+        roomId: null, playerRole: null, hp: 100, maxHp: 100, shield: 0, oppHp: 100, oppMaxHp: 100, oppShield: 0,
         board: [], pendingBoard: null, selectedTile: null, isProcessing: false, comboCount: 0, 
         roomRef: null, lobbyRef: null, currentTurn: null, extraTurn: false, turnTimer: null, 
         turnTimeRemaining: 15, roomBet: 0, isGameOver: false, lastActionId: null,
+        
+        // HỆ THỐNG NỘ KHÍ VÀ HỆ PHÁI
+        myClass: 'kiemtu', oppClass: 'kiemtu',
+        ultCharge: 0, maxUltCharge: 5, isFrozen: false,
+
+        getMyStats: function() {
+            let exp = parseInt(localStorage.getItem('pikachu_exp')) || 0;
+            let level = Math.floor(Math.sqrt(exp / 50)) + 1;
+            let cls = localStorage.getItem('pikachu_class') || 'kiemtu';
+            let base = CLASS_BASE_STATS[cls] || CLASS_BASE_STATS['kiemtu'];
+            return {
+                class: cls,
+                className: base.name,
+                maxHp: base.hp + (level * base.hpG)
+            };
+        },
 
         openLobby: function() {
             let accId = localStorage.getItem('pikachu_account_id');
@@ -157,11 +191,18 @@
             if (this.turnTimer) clearInterval(this.turnTimer);
             
             this.roomId = null; this.playerRole = null; this.isGameOver = false;
-            this.board = []; this.pendingBoard = null; this.hp = this.maxHp; this.oppHp = this.maxHp;
-            this.shield = 0; this.oppShield = 0; this.comboCount = 0; 
-            this.isProcessing = false; this.extraTurn = false;
+            this.board = []; this.pendingBoard = null; this.shield = 0; this.oppShield = 0; this.comboCount = 0; 
+            this.isProcessing = false; this.extraTurn = false; this.isFrozen = false;
+            this.ultCharge = 0;
 
-            let mMenu = document.getElementById('main-menu-overlay'); if (mMenu) mMenu.classList.add('hidden');
+            let stats = this.getMyStats();
+            this.myClass = stats.class;
+            this.maxHp = stats.maxHp;
+            this.hp = this.maxHp;
+
+            let mMenu = document.getElementById('main-menu-overlay') || document.getElementById('lobby-ui'); 
+            if (mMenu) mMenu.classList.add('hidden');
+            
             this.renderLobbyUI(); this.listenToRooms();
         },
 
@@ -189,7 +230,8 @@
         closeLobby: function() {
             if (this.lobbyRef) this.lobbyRef.off();
             let wrap = document.getElementById('pvp-overlay-wrap'); if(wrap) wrap.remove();
-            let mMenu = document.getElementById('main-menu-overlay'); if (mMenu) mMenu.classList.remove('hidden');
+            let mMenu = document.getElementById('main-menu-overlay') || document.getElementById('lobby-ui'); 
+            if (mMenu) mMenu.classList.remove('hidden');
         },
 
         listenToRooms: function() {
@@ -215,7 +257,7 @@
                             <div class="pvp-room-item">
                                 <div>
                                     <div style="font-weight: bold; font-size: 1.1rem;">Phòng của ${room.host.name} ${hasPass ? '🔒' : '🔓'}</div>
-                                    <div style="font-size: 0.9rem; color: #00ffff;">Cược: ${room.bet} 💎 | Người: ${playerCount}</div>
+                                    <div style="font-size: 0.9rem; color: #00ffff;">Cược: ${room.bet} 💎 | Người: ${playerCount} | Hệ: ${room.host.className || 'Kiếm Tu'}</div>
                                 </div>
                                 <div>${btnHtml}</div>
                             </div>`;
@@ -260,6 +302,8 @@
             let savedAvt = localStorage.getItem('pikachu_player_avatar'); let myAvatar = (savedAvt && !savedAvt.includes("imgur")) ? savedAvt : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=100&bold=true`;
             let myVipPts = parseInt(localStorage.getItem('pikachu_vip_points')) || 0;
 
+            let stats = this.getMyStats();
+
             let db = window.firebase.database(); let newRoom = db.ref('pvp_rooms').push();
             this.roomId = newRoom.key; this.playerRole = 'host'; this.roomBet = bet;
 
@@ -267,7 +311,7 @@
 
             newRoom.set({
                 status: 'waiting', createdAt: window.firebase.database.ServerValue.TIMESTAMP, bet: bet, password: passInput,
-                host: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, hp: this.maxHp, shield: 0, ready: true }, guest: null
+                host: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, class: stats.class, className: stats.className, maxHp: stats.maxHp, hp: stats.maxHp, shield: 0, ready: true }, guest: null
             }).then(() => {
                 if (this.lobbyRef) this.lobbyRef.off(); this.enterWaitingRoom();
             });
@@ -292,6 +336,8 @@
             let savedAvt = localStorage.getItem('pikachu_player_avatar'); let myAvatar = (savedAvt && !savedAvt.includes("imgur")) ? savedAvt : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=100&bold=true`;
             let myVipPts = parseInt(localStorage.getItem('pikachu_vip_points')) || 0; let myCoins = parseInt(localStorage.getItem('pikachu_coins')) || 0;
 
+            let stats = this.getMyStats();
+
             this.roomId = rId; this.playerRole = 'guest'; this.roomBet = reqBet;
             let db = window.firebase.database(); let roomRef = db.ref('pvp_rooms/' + rId);
 
@@ -301,7 +347,7 @@
                     let guestRef = db.ref(`pvp_rooms/${rId}/guest`);
                     guestRef.onDisconnect().remove();
                     roomRef.update({
-                        guest: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, hp: this.maxHp, shield: 0, ready: false },
+                        guest: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, class: stats.class, className: stats.className, maxHp: stats.maxHp, hp: stats.maxHp, shield: 0, ready: false },
                         status: 'ready'
                     }).then(() => {
                         if (this.lobbyRef) this.lobbyRef.off(); this.enterWaitingRoom();
@@ -392,12 +438,14 @@
 
         renderWaitingPlayer: function(pData, title) {
             let readyBadge = pData.ready ? `<span style="background: #4CAF50; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; display: inline-block; width: 100px; box-sizing: border-box;">ĐÃ SẴN SÀNG</span>` : `<span style="background: #555; color: #fff; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: bold; display: inline-block; width: 100px; box-sizing: border-box;">ĐANG CHỜ...</span>`;
+            let clsName = pData.className || 'Kiếm Tu';
             return `
             <div style="flex: 1; background: rgba(0,0,0,0.5); border: 2px solid #d4af37; border-radius: 12px; padding: 20px 10px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; min-height: 220px; box-sizing: border-box;">
                 <div style="color: #d4af37; font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">${title}</div>
                 <img src="${pData.avatar}" style="width: 85px; height: 85px; border-radius: 50%; border: 3px solid #fff; object-fit: cover; margin-bottom: 10px; background: #000; box-shadow: 0 0 15px rgba(255,255,255,0.2);">
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%;">
                     <div style="color: #fff; font-weight: bold; font-size: 1.2rem; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 1px 1px 2px #000;">${pData.name}</div>
+                    <div style="color: #ff9800; font-size: 0.85rem; font-weight: bold;">Hệ: ${clsName}</div>
                     <div style="color: #00ffff; font-size: 0.95rem; font-weight: bold; margin-bottom: 5px;">Túi: ${pData.coins || 0} 💎</div>
                     <div style="margin-top: 5px;">${readyBadge}</div>
                 </div>
@@ -461,17 +509,21 @@
             let db = window.firebase.database();
             let myRoomRef = db.ref(`pvp_rooms/${this.roomId}`);
             if (this.playerRole === 'host') { myRoomRef.onDisconnect().cancel(); } else { myRoomRef.child('guest').onDisconnect().cancel(); }
-            
-            // ĐÃ XÓA: myRoomRef.child(this.playerRole).onDisconnect().update({ hp: 0 }); 
-            // -> Giải quyết triệt để lỗi mất mạng 1 giây là bị phán chết.
 
             let wrap = document.getElementById('pvp-overlay-wrap'); if(!wrap) return;
-            this.hp = this.maxHp; this.shield = 0; this.oppHp = this.maxHp; this.oppShield = 0;
-            this.comboCount = 0; this.isProcessing = false; this.extraTurn = false; this.isGameOver = false;
-            this.board = roomData.board; this.pendingBoard = null;
+            this.shield = 0; this.oppShield = 0;
+            this.comboCount = 0; this.isProcessing = false; this.extraTurn = false; this.isGameOver = false; this.isFrozen = false;
+            this.board = roomData.board; this.pendingBoard = null; this.ultCharge = 0;
 
             let oppData = this.playerRole === 'host' ? roomData.guest : roomData.host;
             let myData = this.playerRole === 'host' ? roomData.host : roomData.guest;
+
+            // NẠP CHỈ SỐ MÁU CỦA ĐỊCH & MÌNH TỪ FIREBASE
+            this.maxHp = myData.maxHp || 100;
+            this.hp = myData.hp || this.maxHp;
+            this.oppMaxHp = oppData.maxHp || 100;
+            this.oppHp = oppData.hp || this.oppMaxHp;
+            this.oppClass = oppData.class || 'kiemtu';
 
             let oppVipHtml = ''; let myVipHtml = '';
             if (window.getVipLevelInfo) {
@@ -490,19 +542,21 @@
                             </div>
                             <div class="pvp-badge-wrap">
                                 ${oppVipHtml}
-                                <span style="font-size:0.75rem; padding:2px 4px; border-radius:3px; font-weight:bold; background: rgba(0,255,255,0.2); border: 1px solid #00ffff; color: #00ffff;">${oppData.coins || 0} 💎</span>
+                                <span style="font-size:0.75rem; padding:2px 4px; border-radius:3px; font-weight:bold; background: rgba(0,255,255,0.2); border: 1px solid #00ffff; color: #00ffff;">Hệ: ${oppData.className || 'Kiếm Tu'}</span>
                             </div>
                         </div>
                         <div style="width: 100%; height: 20px; background: #000; border-radius: 10px; border: 1px solid #fff; position: relative; overflow: hidden;">
-                            <div id="pvp-opp-hp-text" class="hp-text-display">100 / 100</div>
-                            <div id="pvp-opp-hp-bar" class="hp-bar-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #b71c1c, #ff5252); position: absolute; top:0; left:0; z-index: 1;"></div>
+                            <div id="pvp-opp-hp-text" class="hp-text-display">${this.oppHp} / ${this.oppMaxHp}</div>
+                            <div id="pvp-opp-hp-bar" class="hp-bar-fill" style="width: ${(this.oppHp/this.oppMaxHp)*100}%; height: 100%; background: linear-gradient(90deg, #b71c1c, #ff5252); position: absolute; top:0; left:0; z-index: 1;"></div>
                             <div id="pvp-opp-shield-bar" class="shield-bar-fill" style="width: 0%; z-index: 5;"></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="pvp-center-col">
-                    <div id="pvp-board" class="pvp-match3-board"></div>
+                    <div id="pvp-board" class="pvp-match3-board">
+                        <div id="pvp-frozen-fx" class="frozen-overlay">❄️ ĐÓNG BĂNG</div>
+                    </div>
                 </div>
 
                 <div class="pvp-info-panel pvp-my-panel">
@@ -514,21 +568,124 @@
                             </div>
                             <div class="pvp-badge-wrap reverse">
                                 ${myVipHtml}
-                                <span style="font-size:0.75rem; padding:2px 4px; border-radius:3px; font-weight:bold; background: rgba(0,255,255,0.2); border: 1px solid #00ffff; color: #00ffff;">${myData.coins || 0} 💎</span>
+                                <span style="font-size:0.75rem; padding:2px 4px; border-radius:3px; font-weight:bold; background: rgba(0,255,255,0.2); border: 1px solid #00ffff; color: #00ffff;">Hệ: ${myData.className || 'Kiếm Tu'}</span>
                             </div>
                         </div>
-                        <div style="width: 100%; height: 20px; background: #000; border-radius: 10px; border: 1px solid #fff; position: relative; overflow: hidden; margin-bottom: 5px;">
-                            <div id="pvp-my-hp-text" class="hp-text-display">100 / 100</div>
-                            <div id="pvp-my-hp-bar" class="hp-bar-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #1b5e20, #4caf50); position: absolute; top:0; left:0; z-index: 1;"></div>
+                        <div style="width: 100%; height: 20px; background: #000; border-radius: 10px; border: 1px solid #fff; position: relative; overflow: hidden; margin-bottom: 8px;">
+                            <div id="pvp-my-hp-text" class="hp-text-display">${this.hp} / ${this.maxHp}</div>
+                            <div id="pvp-my-hp-bar" class="hp-bar-fill" style="width: ${(this.hp/this.maxHp)*100}%; height: 100%; background: linear-gradient(90deg, #1b5e20, #4caf50); position: absolute; top:0; left:0; z-index: 1;"></div>
                             <div id="pvp-my-shield-bar" class="shield-bar-fill" style="width: 0%; z-index: 5;"></div>
                         </div>
-                        <button onclick="PvP.surrender()" style="background: linear-gradient(to right, #b71c1c, #d32f2f); border: 2px solid #fff; color: #fff; font-weight: bold; padding: 5px; border-radius: 8px; cursor: pointer; width: 100%; font-size: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.5);">🏳️ ĐẦU HÀNG</button>
+                        
+                        <div style="display: flex; gap: 8px; width: 100%;">
+                            <button id="btn-pvp-ult" onclick="PvP.castUltimate()" class="g-btn" style="flex: 2; background: #555; opacity: 0.6; pointer-events: none;">🔥 TUYỆT CHIÊU (0/${this.maxUltCharge})</button>
+                            <button onclick="PvP.surrender()" class="g-btn" style="flex: 1; background: linear-gradient(to right, #b71c1c, #d32f2f); box-shadow: 0 4px 6px rgba(0,0,0,0.5);">🏳️ BỎ CUỘC</button>
+                        </div>
                     </div>
                 </div>
             </div>`;
 
             this.drawGrid(); this.setupSync();
         },
+
+        updateUltUI: function() {
+            let btn = document.getElementById('btn-pvp-ult');
+            if(!btn) return;
+            if (this.ultCharge >= this.maxUltCharge) {
+                btn.innerText = "🔥 TUNG TUYỆT CHIÊU!";
+                btn.classList.add('btn-ult-ready');
+            } else {
+                btn.innerText = `🔥 TUYỆT CHIÊU (${this.ultCharge}/${this.maxUltCharge})`;
+                btn.classList.remove('btn-ult-ready');
+                btn.style.opacity = '0.6';
+                btn.style.pointerEvents = 'none';
+            }
+        },
+
+        castUltimate: function() {
+            if (this.ultCharge < this.maxUltCharge || this.isFrozen || this.currentTurn !== this.playerRole || this.isProcessing) return;
+            if(window.playSoundInternal) window.playSoundInternal('win');
+
+            this.ultCharge = 0; this.updateUltUI();
+            let db = window.firebase.database();
+
+            // Áp dụng sát thương hệ phái & Đồng bộ
+            if (this.myClass === 'kiemtu') {
+                this.popText("-30 HP BẠO KÍCH!", "#ff5252");
+                this.oppHp = Math.max(0, this.oppHp - 30);
+                db.ref(`pvp_rooms/${this.roomId}/${this.playerRole === 'host' ? 'guest' : 'host'}`).update({ hp: this.oppHp });
+                this.sendAction('ultimate', { class: 'kiemtu' });
+            } 
+            else if (this.myClass === 'phaptu') {
+                this.popText("BĂNG PHONG!", "#00ffff");
+                this.sendAction('ultimate', { class: 'phaptu' }); // Gửi lệnh đóng băng
+            }
+            else if (this.myClass === 'hophap') {
+                this.hp = Math.min(this.maxHp, this.hp + 40);
+                this.popText("+40 HP HỒI PHỤC!", "#00e676");
+                db.ref(`pvp_rooms/${this.roomId}/${this.playerRole}`).update({ hp: this.hp });
+                this.sendAction('ultimate', { class: 'hophap' });
+            }
+            else if (this.myClass === 'thetu') {
+                this.popText("CÀN KHÔN NA DI!", "#ffeb3b");
+                this.sendAction('ultimate', { class: 'thetu' }); // Gửi lệnh phá bàn
+            }
+            else if (this.myClass === 'phuthuy') {
+                let stealAmount = Math.floor(Math.random() * 11) + 15; // Hút 15 - 25 HP
+                this.popText(`HÚT ${stealAmount} HP!`, "#9c27b0");
+                this.hp = Math.min(this.maxHp, this.hp + stealAmount);
+                this.oppHp = Math.max(0, this.oppHp - stealAmount);
+                
+                db.ref(`pvp_rooms/${this.roomId}/${this.playerRole}`).update({ hp: this.hp });
+                db.ref(`pvp_rooms/${this.roomId}/${this.playerRole === 'host' ? 'guest' : 'host'}`).update({ hp: this.oppHp });
+                this.sendAction('ultimate', { class: 'phuthuy', steal: stealAmount });
+            }
+        },
+
+        handleOpponentUltimate: function(data) {
+            if (data.class === 'kiemtu') {
+                this.popText("BỊ ĐỘT KÍCH -30 HP!", "#ff5252");
+            }
+            else if (data.class === 'phaptu') {
+                this.isFrozen = true;
+                let b = document.getElementById('pvp-board');
+                if(b) b.classList.add('frozen-board');
+                this.popText("BỊ ĐÓNG BĂNG 3S!", "#00ffff");
+                setTimeout(() => {
+                    this.isFrozen = false;
+                    if(b) b.classList.remove('frozen-board');
+                }, 3000);
+            }
+            else if (data.class === 'hophap') {
+                this.popText("ĐỊCH HỒI MÁU!", "#ff9800");
+            }
+            else if (data.class === 'thetu') {
+                this.popText("BÀN CỜ BỊ XÁO TRỘN!", "#ffeb3b");
+                this.shuffleMyBoard();
+            }
+            else if (data.class === 'phuthuy') {
+                this.popText(`BỊ HÚT ${data.steal} HP!`, "#9c27b0");
+            }
+        },
+
+        shuffleMyBoard: function() {
+            let items = [];
+            for (let r = 0; r < CONFIG.ROWS; r++) {
+                for (let c = 0; c < CONFIG.COLS; c++) {
+                    if (this.board[r] && this.board[r][c]) items.push(this.board[r][c]);
+                }
+            }
+            items.sort(() => 0.5 - Math.random());
+            let index = 0;
+            for (let r = 0; r < CONFIG.ROWS; r++) {
+                for (let c = 0; c < CONFIG.COLS; c++) {
+                    if (this.board[r] && this.board[r][c]) this.board[r][c] = items[index++];
+                }
+            }
+            this.drawGrid();
+            window.firebase.database().ref('pvp_rooms/' + this.roomId).update({ board: this.board });
+        },
+
         surrender: function() {
             if (this.isGameOver) return;
             window.showCustomConfirmInternal("Đại hiệp có chắc chắn muốn bỏ chạy? Bạn sẽ mất toàn bộ tiền cược!", () => {
@@ -566,11 +723,15 @@
             window.firebase.database().ref('pvp_rooms/' + this.roomId).update({ currentTurn: nextTurn, board: this.board });
         },
 
-        // ĐÃ THÊM TÍNH NĂNG VUỐT: Trận pháp kích hoạt vuốt khi vẽ bàn cờ
         drawGrid: function() {
             const boardEl = document.getElementById('pvp-board'); 
             if(!boardEl || this.isProcessing) return; 
+            
+            // Giữ lại overlay Đóng băng nếu có
+            let overlay = document.getElementById('pvp-frozen-fx');
             boardEl.innerHTML = '';
+            if (overlay) boardEl.appendChild(overlay);
+
             for (let r = 0; r < CONFIG.ROWS; r++) {
                 for (let c = 0; c < CONFIG.COLS; c++) {
                     let tile = document.createElement('div');
@@ -578,14 +739,12 @@
                     
                     if (this.board[r] && this.board[r][c]) {
                         tile.innerText = this.board[r][c].icon;
-                        // HIỆU ỨNG RƠI: Kiểm tra xem ô này có phải là mới được sinh ra từ applyGravity không
                         if (this.board[r][c].isNew) {
                             tile.classList.add('tile-drop-anim');
-                            this.board[r][c].isNew = false; // Xóa cờ để không bị rơi lại nếu vẽ lại màn hình
+                            this.board[r][c].isNew = false; 
                         }
                     }
 
-                    // TÍCH HỢP VUỐT TRÊN MOBILE & PC (THAY THẾ ONCLICK)
                     tile.onmousedown = (e) => { e.preventDefault(); this.handleSwipeStart(e, r, c, tile); };
                     tile.ontouchstart = (e) => { e.preventDefault(); this.handleSwipeStart(e, r, c, tile); };
                     
@@ -601,15 +760,13 @@
             });
         },
 
-        // ĐÃ THÊM LOGIC XỬ LÝ VUỐT (KÉO) 
         handleSwipeStart: function(e, r, c, tileEl) {
-            if (this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
+            if (this.isFrozen || this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
             
             let startX = e.clientX || (e.touches && e.touches[0].clientX);
             let startY = e.clientY || (e.touches && e.touches[0].clientY);
             if (startX === undefined) return;
 
-            // Nếu chưa chạm viên nào, hoặc chạm sang viên khác thì coi như chọn viên này trước
             if (!this.selectedTile || (this.selectedTile.r !== r || this.selectedTile.c !== c)) {
                 this.handleTileSelect(r, c, tileEl);
             }
@@ -622,41 +779,32 @@
                 let dx = clientX - startX;
                 let dy = clientY - startY;
 
-                // Nếu kéo chuột/vuốt quá 30px thì kích hoạt đổi vị trí
                 if (Math.abs(dx) > 30 || Math.abs(dy) > 30) { 
                     let targetR = r, targetC = c;
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        targetC = dx > 0 ? c + 1 : c - 1; // Vuốt ngang
-                    } else {
-                        targetR = dy > 0 ? r + 1 : r - 1; // Vuốt dọc
-                    }
+                    if (Math.abs(dx) > Math.abs(dy)) { targetC = dx > 0 ? c + 1 : c - 1; } 
+                    else { targetR = dy > 0 ? r + 1 : r - 1; }
                     
-                    cleanup(); // Dừng lắng nghe ngay lập tức khi đã vuốt thành công
+                    cleanup(); 
 
                     if (targetR >= 0 && targetR < CONFIG.ROWS && targetC >= 0 && targetC < CONFIG.COLS) {
-                        let targetTileEl = document.getElementById('pvp-board').children[targetR * CONFIG.COLS + targetC];
-                        if (targetTileEl) {
-                            this.handleTileSelect(targetR, targetC, targetTileEl); // Gửi ô đích vào hàm swap
-                        }
+                        // Tính toán vị trí children do có thêm 1 overlay đóng băng đầu tiên
+                        let targetTileEl = document.getElementById('pvp-board').children[(targetR * CONFIG.COLS + targetC) + 1];
+                        if (targetTileEl) { this.handleTileSelect(targetR, targetC, targetTileEl); }
                     }
                 }
             };
 
             const cleanup = () => {
-                document.removeEventListener('mousemove', handleMove);
-                document.removeEventListener('mouseup', cleanup);
-                document.removeEventListener('touchmove', handleMove);
-                document.removeEventListener('touchend', cleanup);
+                document.removeEventListener('mousemove', handleMove); document.removeEventListener('mouseup', cleanup);
+                document.removeEventListener('touchmove', handleMove); document.removeEventListener('touchend', cleanup);
             };
 
-            document.addEventListener('mousemove', handleMove);
-            document.addEventListener('mouseup', cleanup);
-            document.addEventListener('touchmove', handleMove, { passive: false });
-            document.addEventListener('touchend', cleanup);
+            document.addEventListener('mousemove', handleMove); document.addEventListener('mouseup', cleanup);
+            document.addEventListener('touchmove', handleMove, { passive: false }); document.addEventListener('touchend', cleanup);
         },
 
        handleTileSelect: function(r, c, tileEl) {
-            if (this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
+            if (this.isFrozen || this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
             if (window.playSoundInternal) window.playSoundInternal('select');
             
             this.sendAction('select', { r, c });
@@ -674,7 +822,6 @@
                     this.isProcessing = true;
                     this.sendAction('swap', { r1: sr, c1: sc, r2: r, c2: c });
                     
-                    // Tính toán khoảng cách để bay
                     const dx = (c - sc) * (sEl.offsetWidth + 2);
                     const dy = (r - sr) * (sEl.offsetHeight + 2);
 
@@ -682,9 +829,7 @@
                     sEl.style.transform = `translate(${dx}px, ${dy}px)`;
                     tileEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
 
-                    // Đợi 0.3s cho hiệu ứng bay tới nơi
                     setTimeout(() => {
-                        // Đổi vị trí trong bộ nhớ (Mảng) trước
                         let temp = this.board[sr][sc];
                         this.board[sr][sc] = this.board[r][c];
                         this.board[r][c] = temp;
@@ -692,19 +837,17 @@
                         let matches = this.findMatches();
                         
                         if (matches.length > 0) { 
-                            // NẾU ĂN ĐƯỢC: Xóa class bay, vẽ lại bàn cờ và cho nổ
                             sEl.style.transform = ''; tileEl.style.transform = '';
                             sEl.classList.remove('swapping'); tileEl.classList.remove('swapping');
                             
                             this.isProcessing = false;
-                            this.drawGrid(); // Vẽ lại để cập nhật vị trí chuẩn xác
+                            this.drawGrid(); 
                             
                             this.isProcessing = true;
                             this.comboCount = 0; 
                             this.processMatches(matches); 
                         } 
                         else {
-                            // NẾU KHÔNG ĂN ĐƯỢC: Trả lại mảng như cũ và dùng Animation bay ngược về
                             let tB = this.board[sr][sc]; 
                             this.board[sr][sc] = this.board[r][c]; 
                             this.board[r][c] = tB;
@@ -712,16 +855,13 @@
                             if (window.playSoundInternal) window.playSoundInternal('error');
                             this.sendAction('swap_back', { r1: sr, c1: sc, r2: r, c2: c });
                             
-                            // Bay ngược về tọa độ gốc (0,0) so với vị trí ban đầu của thẻ HTML
                             sEl.style.transform = 'translate(0px, 0px)';
                             tileEl.style.transform = 'translate(0px, 0px)';
                             
-                            // Đợi 0.3s cho nó bay về rồi mới gỡ block
                             setTimeout(() => {
                                 sEl.classList.remove('swapping'); tileEl.classList.remove('swapping');
                                 sEl.style.transform = ''; tileEl.style.transform = '';
                                 this.isProcessing = false; 
-                                // Không cần gọi drawGrid() vì các thẻ vẫn nằm nguyên ở DOM cũ
                             }, 300);
                         }
                     }, 300);
@@ -731,6 +871,7 @@
                 this.selectedTile = null;
             }
         },
+        
         setupSync: function() {
             let db = window.firebase.database(); let oppRole = this.playerRole === 'host' ? 'guest' : 'host';
             this.roomRef = db.ref('pvp_rooms/' + this.roomId);
@@ -749,8 +890,8 @@
                         
                         if (action.type === 'select') {
                             document.querySelectorAll('.opp-selecting').forEach(t => t.classList.remove('opp-selecting'));
-                            if (boardEl && boardEl.children.length > 0) {
-                                let target = boardEl.children[action.data.r * CONFIG.COLS + action.data.c];
+                            if (boardEl && boardEl.children.length > 1) { // +1 do có thẻ overlay băng
+                                let target = boardEl.children[(action.data.r * CONFIG.COLS + action.data.c) + 1];
                                 if(target) target.classList.add('opp-selecting');
                             }
                         } 
@@ -759,9 +900,9 @@
                             this.isProcessing = true; 
                             document.querySelectorAll('.opp-selecting').forEach(t => t.classList.remove('opp-selecting'));
                             
-                            if (boardEl && boardEl.children.length > 0) {
-                                let el1 = boardEl.children[action.data.r1 * CONFIG.COLS + action.data.c1];
-                                let el2 = boardEl.children[action.data.r2 * CONFIG.COLS + action.data.c2];
+                            if (boardEl && boardEl.children.length > 1) {
+                                let el1 = boardEl.children[(action.data.r1 * CONFIG.COLS + action.data.c1) + 1];
+                                let el2 = boardEl.children[(action.data.r2 * CONFIG.COLS + action.data.c2) + 1];
                                 if(el1 && el2) {
                                     const dx = (action.data.c2 - action.data.c1) * (el1.offsetWidth + 2);
                                     const dy = (action.data.r2 - action.data.r1) * (el1.offsetHeight + 2);
@@ -780,14 +921,17 @@
                                 }
                             }, 350);
                         }
-                        // ĐÃ THÊM: ĐỒNG BỘ HIỆU ỨNG NỔ CỦA ĐỐI THỦ
                         else if (action.type === 'match_explode') {
-                            if (boardEl && boardEl.children.length > 0) {
+                            if (boardEl && boardEl.children.length > 1) {
                                 action.data.matches.forEach(m => {
-                                    let tile = boardEl.children[m.r * CONFIG.COLS + m.c];
+                                    let tile = boardEl.children[(m.r * CONFIG.COLS + m.c) + 1];
                                     if(tile) tile.classList.add('explode');
                                 });
                             }
+                        }
+                        // Lắng nghe Địch xài Tuyệt chiêu
+                        else if (action.type === 'ultimate') {
+                            this.handleOpponentUltimate(action.data);
                         }
                     }
                 }
@@ -807,7 +951,7 @@
                     let isTurnChanged = (this.currentTurn !== data.currentTurn);
                     this.currentTurn = data.currentTurn;
                     let boardEl = document.getElementById('pvp-board');
-                    if (boardEl) { 
+                    if (boardEl && !this.isFrozen) { 
                         boardEl.style.opacity = this.currentTurn === this.playerRole ? "1" : "0.8"; 
                         boardEl.style.pointerEvents = this.currentTurn === this.playerRole ? "auto" : "none"; 
                     }
@@ -815,9 +959,9 @@
                 }
                 if (data[oppRole]) {
                     this.oppHp = data[oppRole].hp; this.oppShield = data[oppRole].shield || 0;
-                    let oppHpBar = document.getElementById('pvp-opp-hp-bar'); if(oppHpBar) oppHpBar.style.width = (this.oppHp / this.maxHp * 100) + '%';
-                    let oppHpTxt = document.getElementById('pvp-opp-hp-text'); if(oppHpTxt) oppHpTxt.innerText = `${this.oppHp} / ${this.maxHp}`;
-                    let oppShieldBar = document.getElementById('pvp-opp-shield-bar'); if(oppShieldBar) oppShieldBar.style.width = Math.min(100, (this.oppShield / this.maxHp * 100)) + '%';
+                    let oppHpBar = document.getElementById('pvp-opp-hp-bar'); if(oppHpBar) oppHpBar.style.width = (this.oppHp / this.oppMaxHp * 100) + '%';
+                    let oppHpTxt = document.getElementById('pvp-opp-hp-text'); if(oppHpTxt) oppHpTxt.innerText = `${this.oppHp} / ${this.oppMaxHp}`;
+                    let oppShieldBar = document.getElementById('pvp-opp-shield-bar'); if(oppShieldBar) oppShieldBar.style.width = Math.min(100, (this.oppShield / this.oppMaxHp * 100)) + '%';
                     if(this.oppHp <= 0) this.declareWin();
                 }
                 if (data[this.playerRole]) {
@@ -858,6 +1002,12 @@
         processMatches: function(matches) {
             if (window.playSoundInternal) window.playSoundInternal('match'); this.comboCount++;
             
+            // TĂNG NỘ KHÍ CHO TUYỆT CHIÊU KHI MÌNH ĐANG ĐÁNH
+            if (this.currentTurn === this.playerRole) {
+                this.ultCharge = Math.min(this.maxUltCharge, this.ultCharge + 1);
+                this.updateUltUI();
+            }
+
             let dictCount = {};
             matches.forEach(m => { 
                 let item = this.board[m.r] && this.board[m.r][m.c]; 
@@ -876,11 +1026,10 @@
 
             this.applySkills(totalDmg, totalHeal, totalShield, isFrozen);
             
-            // ĐÃ THÊM: Truyền cờ báo hiệu vụ nổ cho người chơi bên kia biết
             this.sendAction('match_explode', { matches: matches });
             
             let boardEl = document.getElementById('pvp-board');
-            matches.forEach(m => { let tile = boardEl.children[m.r * CONFIG.COLS + m.c]; if (tile) tile.classList.add('explode'); });
+            matches.forEach(m => { let tile = boardEl.children[(m.r * CONFIG.COLS + m.c) + 1]; if (tile) tile.classList.add('explode'); });
 
             setTimeout(() => { matches.forEach(m => { if (this.board[m.r]) this.board[m.r][m.c] = null; }); this.applyGravity(); }, 300);
         },
@@ -890,7 +1039,7 @@
 
             if (heal > 0) { this.hp = Math.min(this.maxHp, this.hp + heal); this.popText(`+${heal} HP`, '#00e676'); updateSelf = true; }
             if (shield > 0) {
-                let oldShield = this.shield; this.shield = Math.min(100, this.shield + shield);
+                let oldShield = this.shield; this.shield = Math.min(this.maxHp, this.shield + shield);
                 let added = this.shield - oldShield; if (added > 0) { this.popText(`+${added} Giáp`, '#00e5ff'); updateSelf = true; }
             }
             if (updateSelf) db.ref(`pvp_rooms/${this.roomId}/${this.playerRole}`).update({ hp: this.hp, shield: this.shield });
@@ -914,7 +1063,6 @@
                 let colData = []; 
                 for (let r = 0; r < CONFIG.ROWS; r++) { if (this.board[r] && this.board[r][c]) colData.push(this.board[r][c]); }
                 
-                // ĐÃ THÊM: Gắn cờ isNew = true để khi vẽ lại sẽ kèm theo hoạt ảnh Rơi Xuống
                 while (colData.length < CONFIG.ROWS) { 
                     colData.unshift({ ...PVP_EMOJIS[Math.floor(Math.random() * PVP_EMOJIS.length)], isNew: true }); 
                 }
@@ -982,6 +1130,8 @@
                     let savedAvt = localStorage.getItem('pikachu_player_avatar');
                     let myAvatar = (savedAvt && !savedAvt.includes("imgur")) ? savedAvt : `https://ui-avatars.com/api/?name=${encodeURIComponent(myName)}&background=random&color=fff&size=100&bold=true`;
                     let myVipPts = parseInt(localStorage.getItem('pikachu_vip_points')) || 0;
+                    
+                    let stats = this.getMyStats();
 
                     let wrap = document.getElementById('pvp-overlay-wrap'); if(wrap) wrap.innerHTML = '';
                     this.playerRole = 'host'; this.hp = this.maxHp; this.shield = 0;
@@ -992,7 +1142,7 @@
                     
                     newRoomRef.set({
                         status: 'waiting', createdAt: window.firebase.database.ServerValue.TIMESTAMP, bet: this.roomBet, password: '', 
-                        host: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, hp: this.maxHp, shield: 0, ready: true }, guest: null
+                        host: { id: accId, name: myName, avatar: myAvatar, vipPts: myVipPts, coins: myCoins, class: stats.class, className: stats.className, maxHp: stats.maxHp, hp: stats.maxHp, shield: 0, ready: true }, guest: null
                     }).then(() => { this.enterWaitingRoom(); });
                 });
             });
@@ -1035,7 +1185,8 @@
             this.board = []; this.roomId = null; this.playerRole = null;
 
             let wrap = document.getElementById('pvp-overlay-wrap'); if(wrap) wrap.remove();
-            let mMenu = document.getElementById('main-menu-overlay'); if (mMenu) mMenu.classList.remove('hidden');
+            let mMenu = document.getElementById('main-menu-overlay') || document.getElementById('lobby-ui'); 
+            if (mMenu) mMenu.classList.remove('hidden');
         }
     };
 })();

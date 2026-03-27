@@ -144,6 +144,11 @@ window.proceedToMainMenu = function(accId, displayName) {
             if(window.showMainMenu) window.showMainMenu(true); // Gửi true để bỏ qua việc reload lần 2
         });
     } else { if(window.showMainMenu) window.showMainMenu(); }
+if (window.db && accId) {
+    let presenceRef = window.db.ref('users/' + accId + '/isOnline');
+    presenceRef.set(true);
+    presenceRef.onDisconnect().set(false);
+}
 }
 
 window.logout = function() {
