@@ -1,9 +1,3 @@
-/* ========================================================
- * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
- * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
- * CẢNH BÁO: Mọi hành vi sao chép không xin phép đều là vi phạm!
- ======================================================== */
-
 window.isLoginMode = true;
 
 window.showAuthScreen = function() {
@@ -38,13 +32,6 @@ window.handleAuth = function() {
         if (!accInput || !passInput) { window.showCustomAlertInternal("❌ Vui lòng nhập đầy đủ Tài khoản và Mật khẩu!"); return; }
         const safeAccKey = accInput.toLowerCase().replace(/[.#$\[\]]/g, "");
 
-        if (safeAccKey === window.ADMIN_ACCOUNT.toLowerCase()) {
-            if (window.isLoginMode) {
-                if (passInput === window.ADMIN_PASSWORD) { window.proceedToMainMenu(window.ADMIN_ACCOUNT, "Boss Văn Cường"); return; } 
-                else { window.showCustomAlertInternal("❌ SAI MẬT KHẨU ADMIN!"); return; }
-            } else { window.showCustomAlertInternal("❌ Tài khoản này được hệ thống bảo vệ, không được phép đăng ký!"); return; }
-        }
-
         if (!window.db) {
             window.showCustomAlertInternal("⚠️ Mất kết nối mạng! Chuyển sang chế độ Offline.");
             if (window.isLoginMode) {
@@ -72,6 +59,13 @@ window.handleAuth = function() {
                         localStorage.setItem('pikachu_vip_points', userData.vipPoints || 0);
                         localStorage.setItem('pikachu_inv_hints', userData.invHints || 0);
                         localStorage.setItem('pikachu_inv_shuffles', userData.invShuffles || 0);
+                        
+                        // --- ĐÃ THAY THẾ: Kiểm tra cờ Admin từ Database thay vì check cứng tên nick ---
+                        if (userData.isAdmin === true) {
+                            localStorage.setItem('pikachu_is_admin', 'true');
+                        } else {
+                            localStorage.removeItem('pikachu_is_admin');
+                        }
 
                         if (existingName !== "") window.proceedToMainMenu(safeAccKey, existingName);
                         else window.showCharacterNamePrompt(safeAccKey, ""); 
@@ -91,14 +85,12 @@ window.handleAuth = function() {
         });
     } catch (error) { 
         console.error(error); 
-        // Đã thay thế alert() bằng bảng thông báo Tu Tiên
         window.showCustomAlertInternal("❌ Lỗi hệ thống đăng nhập: " + error.message); 
     }
 }
 
 window.showCharacterNamePrompt = function(accId, currentName) {
     if (!document.getElementById('char-name-overlay')) {
-        // Cập nhật lại HTML của bảng tạo nhân vật để xài nút Gold chuẩn
         const nameHTML = `
         <div id="char-name-overlay" class="modal-overlay hidden" style="z-index: 10000000; backdrop-filter: blur(8px);">
             <div class="modal-content">
@@ -141,16 +133,28 @@ window.proceedToMainMenu = function(accId, displayName) {
                 localStorage.setItem('pikachu_inv_hints', d.invHints || 0);
                 localStorage.setItem('pikachu_inv_shuffles', d.invShuffles || 0);
                 if (d.avatar) localStorage.setItem('pikachu_player_avatar', d.avatar); 
+                
+                // Đồng bộ cờ admin
+                if (d.isAdmin === true) {
+                    localStorage.setItem('pikachu_is_admin', 'true');
+                } else {
+                    localStorage.removeItem('pikachu_is_admin');
+                }
             }
-            if(window.showMainMenu) window.showMainMenu();
+            if(window.showMainMenu) window.showMainMenu(true); // Gửi true để bỏ qua việc reload lần 2
         });
     } else { if(window.showMainMenu) window.showMainMenu(); }
 }
 
 window.logout = function() {
     if(window.playSoundInternal) window.playSoundInternal('select');
-    localStorage.removeItem('pikachu_account_id'); localStorage.removeItem('pikachu_player_name'); localStorage.removeItem('pikachu_player_avatar');
-    localStorage.removeItem('pikachu_coins'); localStorage.removeItem('pikachu_vip_points');
+    localStorage.removeItem('pikachu_account_id'); 
+    localStorage.removeItem('pikachu_player_name'); 
+    localStorage.removeItem('pikachu_player_avatar');
+    localStorage.removeItem('pikachu_coins'); 
+    localStorage.removeItem('pikachu_vip_points');
+    localStorage.removeItem('pikachu_is_admin'); // Đã thêm xóa cờ admin khi đăng xuất
+    
     let mainMenu = document.getElementById('main-menu-overlay'); if(mainMenu) mainMenu.remove(); 
     if(window.showAuthScreen) window.showAuthScreen(); 
 }
@@ -161,7 +165,6 @@ document.addEventListener('click', function(e) {
     if (e.target && e.target.id === 'auth-switch-btn') { e.preventDefault(); window.toggleAuthMode(); }
     if (e.target && e.target.id === 'confirm-name-btn') { e.preventDefault(); window.handleConfirmName(); }
     
-    // GỌI FILE PROFILE.JS KHI BẤM VÀO AVATAR Ở SẢNH CHÍNH
     if (e.target && (e.target.id === 'btn-change-avatar' || e.target.closest('#btn-change-avatar-wrap'))) {
         if(window.playSoundInternal) window.playSoundInternal('select'); 
         if (window.PlayerProfile && typeof window.PlayerProfile.open === 'function') {

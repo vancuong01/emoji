@@ -22,6 +22,14 @@
             
             actionWrap.insertBefore(chatBtn, actionWrap.firstChild);
         }
+
+        // Bật hệ thống lắng nghe Ngầm
+        if (!window.ChatSystemListenersAdded && localStorage.getItem('pikachu_account_id') && typeof window.firebase !== 'undefined') {
+            ChatSystem.listenForMailbox();
+            ChatSystem.listenForWorldChatGlobal();
+            ChatSystem.startPresenceTracker(); // ĐÃ THÊM: Theo dõi Online
+            window.ChatSystemListenersAdded = true;
+        }
     }, 1000);
 
     if (!document.getElementById('chat-system-styles')) {
@@ -69,7 +77,30 @@
             .chat-x-btn { position: absolute; top: 12px; right: 15px; background: transparent; border: none; color: #ff5252; font-size: 2.2rem; font-weight: bold; font-family: sans-serif; cursor: pointer; z-index: 10; transition: all 0.3s ease; text-shadow: 2px 2px 4px #000; padding: 0; line-height: 1; }
             .chat-x-btn:hover { color: #ff1744; transform: scale(1.2) rotate(90deg); text-shadow: 0 0 15px #ff5252; }
 
-            /* CHÓP SÁNG TÊN CỰC ĐẸP */
+            /* CSS CHO THÔNG BÁO NỔI (TOAST) */
+            .tu-tien-toast {
+                position: fixed; top: 20px; right: -350px; width: 280px;
+                background: linear-gradient(135deg, #004d40 0%, #001a14 100%);
+                border-left: 5px solid #00e5ff; border-radius: 8px; padding: 15px;
+                color: #fff; box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+                transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                z-index: 99999999999; pointer-events: none;
+                font-family: 'Times New Roman', serif;
+            }
+            .tu-tien-toast.show { right: 20px; }
+            .tu-tien-toast-title { color: #00e5ff; font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; border-bottom: 1px dashed #00e5ff; padding-bottom: 5px; }
+            .tu-tien-toast-msg { color: #ffd700; font-size: 0.95rem; line-height: 1.4; word-break: break-word;}
+
+            /* CSS LOA THẾ GIỚI (MARQUEE) */
+            #global-marquee-wrap { 
+                position: fixed; top: 75px; left: 0; width: 100vw; height: 38px; 
+                background: linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0.8) 20%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0)); 
+                border-top: 1px solid rgba(212, 175, 55, 0.5); border-bottom: 1px solid rgba(212, 175, 55, 0.5); 
+                z-index: 99999998; display: none; pointer-events: none; overflow: hidden; white-space: nowrap; 
+            }
+            #global-marquee-content { display: inline-block; line-height: 36px; font-size: 1.1rem; text-shadow: 1px 1px 2px #000; font-family: 'Times New Roman', serif; }
+            @keyframes marquee-scroll { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+
             @keyframes text-glow-anim { 0% { text-shadow: 0 0 5px var(--vip-color), 1px 1px 2px #000; } 100% { text-shadow: 0 0 20px var(--vip-color), 0 0 30px #fff, 1px 1px 2px #000; } }
             .vip-glow-text { animation: text-glow-anim 0.8s alternate infinite ease-in-out; }
         `;
@@ -79,6 +110,120 @@
     window.ChatSystem = {
         myId: null, myName: null, myAvt: null, myVipLevel: 0, myVipName: '', myVipColor: '', 
         isAdmin: false, currentTab: 'world', currentPrivateRoom: null, activeRef: null,
+        worldChatQueue: [], isMarqueeRunning: false, 
+
+        // --- ĐÃ THÊM: HỆ THỐNG KIỂM TRA ONLINE FIREBASE ---
+        startPresenceTracker: function() {
+            let myId = localStorage.getItem('pikachu_account_id');
+            if (!myId || typeof window.firebase === 'undefined') return;
+            let db = window.firebase.database();
+            let myRef = db.ref('users/' + myId);
+            let connectedRef = db.ref('.info/connected');
+
+            connectedRef.on('value', snap => {
+                if (snap.val() === true) {
+                    let statusRef = myRef.child('isOnline');
+                    statusRef.onDisconnect().set(false);
+                    statusRef.set(true); // Khi đăng nhập thành công sẽ thắp sáng Sinh Mệnh Bài
+                }
+            });
+        },
+
+        listenForWorldChatGlobal: function() {
+            let myId = localStorage.getItem('pikachu_account_id');
+            if (!myId || typeof window.firebase === 'undefined') return;
+            let db = window.firebase.database();
+            let chatRef = db.ref('world_chat');
+            let initTime = Date.now();
+            
+            if (!document.getElementById('global-marquee-wrap')) {
+                const mqHTML = `<div id="global-marquee-wrap"><div id="global-marquee-content"></div></div>`;
+                document.body.insertAdjacentHTML('beforeend', mqHTML);
+            }
+
+            chatRef.limitToLast(1).on('child_added', snap => {
+                let msg = snap.val();
+                if (msg && msg.timestamp && (Date.now() - msg.timestamp < 15000) && msg.timestamp >= initTime) {
+                    this.worldChatQueue.push(msg);
+                    if (!this.isMarqueeRunning) {
+                        this.playNextMarquee();
+                    }
+                }
+            });
+        },
+
+        playNextMarquee: function() {
+            let wrap = document.getElementById('global-marquee-wrap');
+            let content = document.getElementById('global-marquee-content');
+            if (!wrap || !content) return;
+
+            if (this.worldChatQueue.length === 0) {
+                this.isMarqueeRunning = false;
+                wrap.style.display = 'none';
+                return;
+            }
+
+            this.isMarqueeRunning = true;
+            let msgData = this.worldChatQueue.shift();
+            wrap.style.display = 'block';
+
+            let nameColor = msgData.vipColor || '#ffd700';
+            // TRIỆU HỒI MÀU CỦA ĐẠI GIA
+            let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(msgData.senderId, msgData.name, nameColor) : `<span style="color: ${nameColor};">${msgData.name}</span>`;
+            
+            content.innerHTML = `📢 <span style="font-weight: bold; text-transform: uppercase;">[Thế Giới] ${coloredName}</span>: <span style="color: #fff;">${msgData.text}</span>`;
+            
+            content.style.animation = 'none';
+            void content.offsetWidth;
+            content.style.animation = 'marquee-scroll 10s linear forwards';
+            
+            content.onanimationend = () => {
+                this.playNextMarquee();
+            };
+        },
+
+        listenForMailbox: function() {
+            let myId = localStorage.getItem('pikachu_account_id');
+            if (!myId || typeof window.firebase === 'undefined') return;
+            
+            let db = window.firebase.database();
+            let mailRef = db.ref(`users/${myId}/mailbox`);
+            
+            mailRef.limitToLast(1).on('child_added', snap => {
+                let mail = snap.val();
+                let mailId = snap.key;
+                let serverNow = Date.now(); 
+                
+                if (mail && !mail.isRead && (serverNow - mail.timestamp < 15000)) {
+                    let currentRoomStr = [myId, mail.senderId].sort().join('_');
+                    let isChattingWithThem = (document.getElementById('chat-overlay') && this.currentPrivateRoom === currentRoomStr);
+                    
+                    if (!isChattingWithThem) {
+                        this.showToastNotification(mail.title, mail.message);
+                        if (window.playSoundInternal) window.playSoundInternal('match'); 
+                    }
+                    db.ref(`users/${myId}/mailbox/${mailId}`).update({ isRead: true });
+                }
+            });
+        },
+
+        showToastNotification: function(title, msg) {
+            let toastId = 'toast-' + Date.now();
+            let html = `
+            <div id="${toastId}" class="tu-tien-toast">
+                <div class="tu-tien-toast-title">🎐 ${title}</div>
+                <div class="tu-tien-toast-msg">${msg}</div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', html);
+            
+            let toastEl = document.getElementById(toastId);
+            setTimeout(() => toastEl.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                toastEl.classList.remove('show');
+                setTimeout(() => toastEl.remove(), 600);
+            }, 4000);
+        },
 
         openLobby: function() {
             this.myId = localStorage.getItem('pikachu_account_id');
@@ -91,7 +236,7 @@
             let vipPts = localStorage.getItem('pikachu_vip_points') || 0;
             let vipInfo = window.getVipLevelInfo ? window.getVipLevelInfo(vipPts) : { level: 0, name: "Phàm Nhân", color: "#ccc" };
             
-            this.isAdmin = (this.myId.toLowerCase() === window.ADMIN_ACCOUNT?.toLowerCase() || this.myName.includes("Boss"));
+            this.isAdmin = localStorage.getItem('pikachu_is_admin') === 'true';
             if (this.isAdmin) vipInfo = { level: 10, name: "Tiên Nhân", color: "#ff0000" };
             
             this.myVipLevel = vipInfo.level; this.myVipName = vipInfo.name; this.myVipColor = vipInfo.color;
@@ -158,10 +303,9 @@
             
             btn.disabled = true; setTimeout(() => { btn.disabled = false; inp.focus(); }, 2000);
 
-            // BẮT CHUẨN KHUNG TỪ LOCALSTORAGE (KHÔNG XÉT THÊM ĐẠI GIA ĐẠI GIẾC GÌ HẾT)
             let equippedFrame = localStorage.getItem('pikachu_equipped_frame');
             if (!equippedFrame || equippedFrame === 'null' || equippedFrame === 'undefined' || equippedFrame === 'none') {
-                equippedFrame = ''; 
+                equippedFrame = 'none'; 
             }
 
             window.firebase.database().ref('world_chat').push({ 
@@ -170,7 +314,7 @@
                 avatar: this.myAvt, 
                 vipName: this.myVipName, 
                 vipColor: this.myVipColor, 
-                frame: equippedFrame, // Chân ái là đây
+                frame: equippedFrame, 
                 text: text, 
                 timestamp: window.firebase.database.ServerValue.TIMESTAMP 
             });
@@ -192,7 +336,25 @@
                             let d = fSnap.val();
                             let avt = d.avatar || 'https://i.imgur.com/7HnLKEg.png';
                             let name = d.displayName || "Ẩn Danh";
-                            let html = `<div class="friend-chat-item" onclick="ChatSystem.openPrivateRoom('${fId}', '${name}', '${avt}')"><div style="display:flex; align-items:center; gap:12px;"><img src="${avt}" class="friend-avt"><span class="friend-name">${name}</span></div><button class="talisman-btn">Truyền Phù 🎐</button></div>`;
+                            
+                            let onlineStatus = d.isOnline ? 
+                                '<span style="color:#00e676; text-shadow: 0 0 5px #00e676; font-size:0.8rem;">🟢 Đang Online</span>' : 
+                                '<span style="color:#777; font-size:0.8rem;">⚪ Ngoại Tuyến</span>';
+
+                            // TRIỆU HỒI MÀU CỦA ĐẠI GIA
+                            let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(fId, name, '#ffd700') : name;
+
+                            let html = `
+                            <div class="friend-chat-item" onclick="ChatSystem.openPrivateRoom('${fId}', '${name}', '${avt}')">
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <img src="${avt}" class="friend-avt">
+                                    <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                                        <span class="friend-name" style="max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${coloredName}</span>
+                                        ${onlineStatus}
+                                    </div>
+                                </div>
+                                <button class="talisman-btn">Truyền Phù 🎐</button>
+                            </div>`;
                             box.insertAdjacentHTML('beforeend', html);
                         }
                     });
@@ -238,61 +400,76 @@
 
             let equippedFrame = localStorage.getItem('pikachu_equipped_frame');
             if (!equippedFrame || equippedFrame === 'null' || equippedFrame === 'undefined' || equippedFrame === 'none') {
-                equippedFrame = ''; 
+                equippedFrame = 'none'; 
             }
 
-            window.firebase.database().ref('ephemeral_chats/' + this.currentPrivateRoom).push({ 
+            let db = window.firebase.database();
+            let timestamp = window.firebase.database.ServerValue.TIMESTAMP;
+
+            db.ref('ephemeral_chats/' + this.currentPrivateRoom).push({ 
                 senderId: this.myId, 
                 name: this.myName, 
                 avatar: this.myAvt, 
                 vipColor: this.myVipColor, 
                 frame: equippedFrame,
                 text: text, 
-                timestamp: window.firebase.database.ServerValue.TIMESTAMP 
+                timestamp: timestamp 
+            });
+
+            db.ref(`users/${fId}/mailbox`).push({
+                type: 'chat',
+                title: 'Mật Âm Truyền Tới',
+                message: `<b style="color:#00ffff">${this.myName}</b> vừa nói: <i>"${text.substring(0, 25)}${text.length > 25 ? '...' : ''}"</i>`,
+                senderId: this.myId,
+                isRead: false,
+                timestamp: timestamp
             });
         },
 
-        // --- CƠ CHẾ RENDER CHUẨN XÁC, BO TRÒN, FIX ẢNH RÁCH ---
         appendMessage: function(containerId, data, isPrivate = false) {
             let box = document.getElementById(containerId);
             if (!box) return;
 
             let isMe = (data.senderId === this.myId);
             let playerName = data.displayName || data.name || "Vô Danh";
-            let rawFrame = data.frame;
+            let rawFrame = data.frame || 'none';
 
-            // KIỂM TRA KHUNG (Chống ảnh rách)
-            let hasFrame = (rawFrame && typeof rawFrame === 'string' && rawFrame.trim() !== '' && rawFrame !== 'none' && rawFrame !== 'null' && rawFrame !== 'undefined');
-
-            // XÁC ĐỊNH MÀU SẮC ĐẠI GIA NẾU DÙNG KHUNG TOP (Tích hợp lại cực gọn)
             let nameColor = data.vipColor || '#ccc';
-            if (hasFrame) {
+            if (rawFrame !== 'none') {
                 if (rawFrame.includes('top1')) nameColor = '#ffd700';
                 else if (rawFrame.includes('top2')) nameColor = '#e0e0e0';
                 else if (rawFrame.includes('top3')) nameColor = '#cd7f32';
             }
 
-            // MÀU GLOW LÀ MÀU TÊN
             let isGlow = (nameColor !== '#ccc' && nameColor !== '#888888' && nameColor !== '#fff');
             let textGlowClass = isGlow ? 'vip-glow-text' : '';
 
-            // KHỐI AVATAR INLINE STYLE (Tròn xoe hoàn hảo, kích thước rộng rãi y hệt profile)
-            let avatarHTML = `
-            <div style="position: relative; width: 45px; height: 45px; flex-shrink: 0; margin-right: 12px; display: flex; justify-content: center; align-items: center;">
-                <img src="${data.avatar || 'https://i.imgur.com/7HnLKEg.png'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid ${nameColor}; box-shadow: 0 0 10px ${nameColor}; background: #000; z-index: 1;">
-                ${hasFrame ? `<img src="${rawFrame}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 70px; height: 70px; object-fit: contain; z-index: 2; pointer-events: none;" onerror="this.style.display='none'">` : ''}
-            </div>`;
+            // TRIỆU HỒI MÀU CỦA ĐẠI GIA
+            let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(data.senderId, playerName, nameColor) : playerName;
 
-            // KHỐI TÊN NGƯỜI CHƠI (Bật Glow nhấp nháy)
+            let avatarHTML = '';
+            if (window.renderAvatarWithFrame) {
+                let frameHTML = window.renderAvatarWithFrame(data.avatar || 'https://i.imgur.com/7HnLKEg.png', rawFrame, nameColor, 36);
+                avatarHTML = `
+                <div style="margin-right: ${isMe ? '0' : '12px'}; margin-left: ${isMe ? '12px' : '0'};">
+                    ${frameHTML}
+                </div>`;
+            } else {
+                avatarHTML = `
+                <div style="position: relative; width: 45px; height: 45px; flex-shrink: 0; margin-right: ${isMe ? '0' : '12px'}; margin-left: ${isMe ? '12px' : '0'}; display: flex; justify-content: center; align-items: center;">
+                    <img src="${data.avatar || 'https://i.imgur.com/7HnLKEg.png'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid ${nameColor}; box-shadow: 0 0 10px ${nameColor}; background: #000; z-index: 1;">
+                </div>`;
+            }
+
             let headerHTML = '';
             if (!isPrivate) {
                 headerHTML = `
                 <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 5px; ${isMe ? 'flex-direction: row-reverse;' : ''}">
                     <span style="background: ${data.vipColor || '#ccc'}; color: #000; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 5px ${data.vipColor || '#ccc'}; white-space: nowrap; text-transform: uppercase;">${data.vipName || 'Phàm Nhân'}</span>
-                    <span class="${textGlowClass}" style="font-weight: bold; color: ${nameColor}; font-size: 1.15rem; --vip-color: ${nameColor}; text-shadow: 1px 1px 1px #000;">${playerName}</span>
+                    <span class="${textGlowClass}" style="font-weight: bold; font-size: 1.15rem; --vip-color: ${nameColor}; text-shadow: 1px 1px 1px #000;">${coloredName}</span>
                 </div>`;
             } else {
-                headerHTML = `<div class="${textGlowClass}" style="font-weight: bold; color: ${nameColor}; font-size: 1rem; margin-bottom: 5px; ${isMe ? 'text-align: right;' : ''} --vip-color: ${nameColor}; text-shadow: 1px 1px 1px #000;">${playerName}</div>`;
+                headerHTML = `<div class="${textGlowClass}" style="font-weight: bold; font-size: 1rem; margin-bottom: 5px; ${isMe ? 'text-align: right;' : ''} --vip-color: ${nameColor}; text-shadow: 1px 1px 1px #000;">${coloredName}</div>`;
             }
 
             let html = `
@@ -309,7 +486,7 @@
         }
     };
 
-    // 4. DỌN RÁC FIREBASE
+    // DỌN RÁC FIREBASE
     setInterval(() => {
         if (typeof window.firebase === 'undefined' || !window.firebase.database) return;
         
@@ -351,7 +528,6 @@
                     }
                 });
             });
-
         });
     }, 60000); 
 })();

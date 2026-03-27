@@ -5,6 +5,7 @@
  ======================================================== */
 (function() {
     setInterval(() => {
+        // 1. TẠO NÚT MỞ HỒ SƠ
         let leftActions = document.querySelector('.menu-left-actions');
         if (leftActions && !document.getElementById('btn-menu-profile')) {
             let profileBtn = document.createElement('button');
@@ -13,94 +14,120 @@
             profileBtn.style.cssText = "background: linear-gradient(to bottom, #1976d2, #0d47a1); border: 3px solid #64b5f6; color: #fff; font-weight: bold; padding: 12px 25px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; box-shadow: 0 0 15px rgba(33, 150, 243, 0.6); transition: 0.2s;";
             profileBtn.onmouseover = () => profileBtn.style.transform = "scale(1.05)";
             profileBtn.onmouseleave = () => profileBtn.style.transform = "scale(1)";
-            profileBtn.onclick = () => { if(window.playSoundInternal) window.playSoundInternal('select'); PlayerProfile.open(); };
+            profileBtn.onclick = () => { if(window.playSoundInternal) window.playSoundInternal('select'); window.PlayerProfile.open(); };
             leftActions.appendChild(profileBtn);
         }
-    }, 1000);
+
+        // 2. ĐÃ FIX: TRẬN PHÁP TỰ ĐỘNG CHỚP MÀU ĐẠI GIA BÊN TRONG HỒ SƠ
+        let nameEl = document.getElementById('profile-colored-name-display');
+        if (nameEl && window.getColoredNameHTML) {
+            let accId = localStorage.getItem('pikachu_account_id');
+            let pName = localStorage.getItem('pikachu_player_name');
+            let defaultColor = nameEl.dataset.defaultColor || '#fff';
+            
+            let newHtml = window.getColoredNameHTML(accId, pName, defaultColor);
+            // Nếu HTML mới (có màu) khác với HTML hiện tại, tự động thay thế ngay lập tức
+            if (nameEl.innerHTML !== newHtml) {
+                nameEl.innerHTML = newHtml;
+            }
+        }
+    }, 500); // Cứ nửa giây check 1 lần, data về là sáng màu luôn!
 
     window.PlayerProfile = {
         open: function() {
-            let accId = localStorage.getItem('pikachu_account_id') || 'Chưa rõ';
-            let pName = localStorage.getItem('pikachu_player_name') || 'Vô Danh';
-            let coins = localStorage.getItem('pikachu_coins') || 0; 
-            let avatarSrc = localStorage.getItem('pikachu_player_avatar');
-            
-            let safeName = encodeURIComponent(pName);
-            let dynamicAvt = `https://ui-avatars.com/api/?name=${safeName}&background=random&color=fff&bold=true&size=100`;
-            let finalAvt = (avatarSrc && !avatarSrc.includes('imgur.com')) ? avatarSrc : dynamicAvt;
+            try {
+                let accId = localStorage.getItem('pikachu_account_id') || 'Chưa rõ';
+                let pName = localStorage.getItem('pikachu_player_name') || 'Vô Danh';
+                
+                let coins = parseInt(localStorage.getItem('pikachu_coins')) || 0; 
+                let avatarSrc = localStorage.getItem('pikachu_player_avatar');
+                
+                let safeName = encodeURIComponent(pName);
+                let dynamicAvt = `https://ui-avatars.com/api/?name=${safeName}&background=random&color=fff&bold=true&size=100`;
+                let finalAvt = (avatarSrc && avatarSrc !== 'undefined' && avatarSrc !== 'null' && !avatarSrc.includes('imgur.com')) ? avatarSrc : dynamicAvt;
 
-            let vipPts = localStorage.getItem('pikachu_vip_points') || 0;
-            let vipInfo = window.getVipLevelInfo ? window.getVipLevelInfo(vipPts) : { name: 'Phàm Nhân', color: '#888888' };
-            if (accId.toLowerCase() === "vancuong140904" || pName.includes("Boss Văn Cường")) {
-                vipInfo = { name: "Tiên Nhân", color: "#ff0000", glow: "0 0 20px #ff0000" };
-            }
+                let vipPts = parseInt(localStorage.getItem('pikachu_vip_points')) || 0;
+                let vipInfo = window.getVipLevelInfo ? window.getVipLevelInfo(vipPts) : { name: 'Phàm Nhân', color: '#888888' };
+                
+                let isAdmin = localStorage.getItem('pikachu_is_admin') === 'true';
+                if (isAdmin) {
+                    vipInfo = { name: "Tiên Nhân", color: "#ff0000", glow: "0 0 20px #ff0000" };
+                }
 
-            let coloredNameHtml = window.getColoredNameHTML ? window.getColoredNameHTML(accId, pName, vipInfo.color) : `<span style="color: ${vipInfo.color}; font-weight: bold;">${pName}</span>`;
+                // Lấy HTML màu tên (sẽ tự động update nếu data Đại gia chưa tải kịp)
+                let coloredNameHtml = window.getColoredNameHTML ? window.getColoredNameHTML(accId, pName, vipInfo.color) : `<span style="color: ${vipInfo.color}; font-weight: bold;">${pName}</span>`;
 
-            let currentFrame = localStorage.getItem('pikachu_equipped_frame') || 'none';
-            let avatarHtml = window.renderAvatarWithFrame ? window.renderAvatarWithFrame(finalAvt, currentFrame, vipInfo.color, 90) : `<img src="${finalAvt}" style="width: 90px; height: 90px; border-radius: 50%; border: 4px solid ${vipInfo.color}; object-fit: cover; box-shadow: 0 0 15px ${vipInfo.color};">`;
+                let currentFrame = localStorage.getItem('pikachu_equipped_frame') || 'none';
+                let avatarHtml = window.renderAvatarWithFrame ? window.renderAvatarWithFrame(finalAvt, currentFrame, vipInfo.color, 90) : `<img src="${finalAvt}" style="width: 90px; height: 90px; border-radius: 50%; border: 4px solid ${vipInfo.color}; object-fit: cover; box-shadow: 0 0 15px ${vipInfo.color};">`;
 
-            // === TÍNH TOÁN EXP (TU VI) ===
-            // Sếp có thể tự thay đổi key 'pikachu_exp' bằng biến mà server trả về nhé.
-            let exp = parseInt(localStorage.getItem('pikachu_exp')) || parseInt(vipPts) || 0; 
-            // Nếu không có max_exp, tự động cho level max là mốc 1000 tiếp theo (ví dụ: exp 1500 -> max 2000)
-            let maxExp = parseInt(localStorage.getItem('pikachu_max_exp')) || (Math.floor(exp / 1000) + 1) * 1000;
-            let expPercent = Math.min((exp / maxExp) * 100, 100).toFixed(1); // Giới hạn max 100%
+                let exp = parseInt(localStorage.getItem('pikachu_exp')) || vipPts || 0; 
+                let maxExp = parseInt(localStorage.getItem('pikachu_max_exp')) || (Math.floor(exp / 1000) + 1) * 1000;
+                let expPercent = Math.min((exp / maxExp) * 100, 100).toFixed(1);
 
-            let oldOverlay = document.getElementById('profile-overlay');
-            if (oldOverlay) oldOverlay.remove();
+                let oldOverlay = document.getElementById('profile-overlay');
+                if (oldOverlay) oldOverlay.remove();
 
-            const html = `
-            <div id="profile-overlay" class="modal-overlay" style="z-index: 9999999; backdrop-filter: blur(5px);">
-                <div class="modal-content" style="max-width: 400px; padding: 25px; text-align: center; border: 4px solid #64b5f6; background: #3e2723; box-shadow: 0 0 30px rgba(33, 150, 243, 0.5); overflow-y: auto; max-height: 90vh;">
-                    
-                    <h2 style="color: #64b5f6; margin-bottom: 15px; font-size: 2.2rem; text-shadow: 2px 2px 0 #000;">HỒ SƠ TU TIÊN</h2>
-                    
-                    <div style="margin-bottom: 10px; display: flex; justify-content: center;">${avatarHtml}</div>
-                    
-                    <span style="background: ${vipInfo.color}; color: #000; padding: 4px 15px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.8); display: inline-block; margin-bottom: 10px;">${vipInfo.name}</span>
-
-                    <div style="margin: 0 auto 20px auto; width: 85%; text-align: left;">
-                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #ccc; margin-bottom: 5px; text-shadow: 1px 1px 2px #000;">
-                            <strong>✨ Tu Vi</strong>
-                            <span style="color: #00c6ff; font-weight: bold;">${exp.toLocaleString('vi-VN')} / ${maxExp.toLocaleString('vi-VN')}</span>
-                        </div>
-                        <div style="width: 100%; background: rgba(0,0,0,0.6); border-radius: 10px; border: 1px solid #555; overflow: hidden; height: 16px; position: relative; box-shadow: inset 0 0 8px #000;">
-                            <div style="width: ${expPercent}%; background: linear-gradient(90deg, #00c6ff, #0072ff); height: 100%; border-radius: 10px; box-shadow: 0 0 10px #00c6ff; transition: width 0.5s ease-in-out;"></div>
-                            <div style="position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 0.7rem; color: #fff; font-weight: bold; line-height: 16px; text-shadow: 1px 1px 2px #000;">${expPercent}%</div>
-                        </div>
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
-                        <button onclick="document.getElementById('tutien-avatar-upload').click(); if(window.playSoundInternal) window.playSoundInternal('select');" style="flex: 1; background: #222; color: #00ffff; border: 1px solid #00ffff; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s;">📷 Đổi Ảnh</button>
+                const html = `
+                <div id="profile-overlay" class="modal-overlay" style="z-index: 9999999; backdrop-filter: blur(5px);">
+                    <div class="modal-content" style="max-width: 400px; padding: 25px; text-align: center; border: 4px solid #64b5f6; background: #3e2723; box-shadow: 0 0 30px rgba(33, 150, 243, 0.5); overflow-y: auto; max-height: 90vh;">
                         
-                        <button onclick="PlayerProfile.openFrameInventory()" style="flex: 1; background: linear-gradient(to right, #004d40, #00695c); color: #00ffff; border: 1px solid #00ffff; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; box-shadow: 0 0 10px rgba(0,255,255,0.3);">✨ Đổi Khung</button>
+                        <h2 style="color: #64b5f6; margin-bottom: 15px; font-size: 2.2rem; text-shadow: 2px 2px 0 #000;">HỒ SƠ TU TIÊN</h2>
+                        
+                        <div style="margin-bottom: 10px; display: flex; justify-content: center;">${avatarHtml}</div>
+                        
+                        <span style="background: ${vipInfo.color}; color: #000; padding: 4px 15px; border-radius: 12px; font-weight: bold; font-size: 0.9rem; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.8); display: inline-block; margin-bottom: 20px;">${vipInfo.name}</span>
+
+                        <div style="margin: 0 auto 20px auto; width: 85%; text-align: left;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.9rem; color: #ccc; margin-bottom: 5px; text-shadow: 1px 1px 2px #000;">
+                                <strong>✨ Tu Vi</strong>
+                                <span style="color: #00c6ff; font-weight: bold;">${exp.toLocaleString('vi-VN')} / ${maxExp.toLocaleString('vi-VN')}</span>
+                            </div>
+                            <div style="width: 100%; background: rgba(0,0,0,0.6); border-radius: 10px; border: 1px solid #555; overflow: hidden; height: 16px; position: relative; box-shadow: inset 0 0 8px #000;">
+                                <div style="width: ${expPercent}%; background: linear-gradient(90deg, #00c6ff, #0072ff); height: 100%; border-radius: 10px; box-shadow: 0 0 10px #00c6ff; transition: width 0.5s ease-in-out;"></div>
+                                <div style="position: absolute; top: 0; left: 0; width: 100%; text-align: center; font-size: 0.7rem; color: #fff; font-weight: bold; line-height: 16px; text-shadow: 1px 1px 2px #000;">${expPercent}%</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                            <button onclick="document.getElementById('tutien-avatar-upload').click(); if(window.playSoundInternal) window.playSoundInternal('select');" style="flex: 1; background: #222; color: #00ffff; border: 1px solid #00ffff; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s;">📷 Đổi Ảnh</button>
+                            
+                            <button onclick="window.PlayerProfile.openFrameInventory()" style="flex: 1; background: linear-gradient(to right, #004d40, #00695c); color: #00ffff; border: 1px solid #00ffff; padding: 8px 10px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9rem; transition: 0.2s; box-shadow: 0 0 10px rgba(0,255,255,0.3);">✨ Đổi Khung</button>
+                        </div>
+
+                        <input type="file" id="tutien-avatar-upload" accept="image/*" style="display: none;" onchange="window.PlayerProfile.handleAvatarUpload(this)">
+
+                        <div style="background: rgba(0,0,0,0.6); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #8b5a2b; text-align: left; box-shadow: inset 0 0 10px #000;">
+                            <div style="margin-bottom: 12px; font-size: 1.05rem; color: #ccc; border-bottom: 1px dashed #555; padding-bottom: 8px;"><strong>🔑 ID:</strong> <span style="color: #00ffff; float: right;">${accId}</span></div>
+                            
+                            <div style="margin-bottom: 12px; font-size: 1.05rem; color: #ccc; border-bottom: 1px dashed #555; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                                <strong>👤 Biệt Danh:</strong> 
+                                <span id="profile-colored-name-display" data-default-color="${vipInfo.color}" style="font-size: 1.15rem; text-align: right; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${coloredNameHtml}</span>
+                            </div>
+                            
+                            <div style="margin-bottom: 12px; font-size: 1.05rem; color: #ccc; border-bottom: 1px dashed #555; padding-bottom: 8px;"><strong>🏅 Cảnh Giới:</strong> <span style="color: ${vipInfo.color}; float: right; font-weight: bold; text-shadow: 1px 1px 2px #000;">${vipInfo.name}</span></div>
+                            <div style="margin-bottom: 5px; font-size: 1.05rem; color: #ccc;"><strong>💎 Linh Thạch:</strong> <span style="color: #00e676; float: right; font-weight: bold;">${coins.toLocaleString('vi-VN')}</span></div>
+                        </div>
+
+                        <div style="margin-bottom: 15px; text-align: right;">
+                            <button onclick="window.PlayerProfile.togglePasswordForm(); if(window.playSoundInternal) window.playSoundInternal('select');" style="background: transparent; border: 1px solid #aaa; color: #ddd; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">🔐 Đổi Mật Khẩu</button>
+                        </div>
+
+                        <div id="prof-password-form" class="hidden" style="background: rgba(0,0,0,0.8); border: 2px solid #ff5252; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                            <p style="color: #ff5252; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem;">THIẾT LẬP MẬT KHẨU MỚI</p>
+                            <input type="password" id="prof-old-pass" placeholder="Nhập mật khẩu cũ..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; text-align: center; font-size: 1rem; box-sizing: border-box;">
+                            <input type="password" id="prof-new-pass" placeholder="Nhập mật khẩu mới..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; text-align: center; font-size: 1rem; box-sizing: border-box;">
+                            <input type="password" id="prof-confirm-pass" placeholder="Xác nhận mật khẩu mới..." style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; text-align: center; font-size: 1rem; box-sizing: border-box;">
+                            <button onclick="window.PlayerProfile.submitPasswordChange()" style="background: #ff5252; color: #fff; width: 100%; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1rem;">XÁC NHẬN ĐỔI</button>
+                        </div>
+
+                        <button onclick="document.getElementById('profile-overlay').remove(); if(window.playSoundInternal) window.playSoundInternal('select');" style="background: linear-gradient(to bottom, #d4af37, #aa8000); border: 2px solid #fff; color: #000; font-weight: bold; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; width: 100%; transition: 0.2s;">ĐÓNG HỒ SƠ</button>
                     </div>
-
-                    <input type="file" id="tutien-avatar-upload" accept="image/*" style="display: none;" onchange="PlayerProfile.handleAvatarUpload(this)">
-
-                    <div style="background: rgba(0,0,0,0.6); border-radius: 10px; padding: 15px; margin-bottom: 15px; border: 1px solid #8b5a2b; text-align: left; box-shadow: inset 0 0 10px #000;">
-                        <div style="margin-bottom: 12px; font-size: 1.05rem; color: #ccc; border-bottom: 1px dashed #555; padding-bottom: 8px;"><strong>🔑 ID:</strong> <span style="color: #00ffff; float: right;">${accId}</span></div>
-                        <div style="margin-bottom: 12px; font-size: 1.05rem; color: #ccc; border-bottom: 1px dashed #555; padding-bottom: 8px;"><strong>👤 Biệt Danh:</strong> <span style="float: right;">${coloredNameHtml}</span></div>
-                        <div style="margin-bottom: 12px; font-size: 1.05rem; color: #ccc; border-bottom: 1px dashed #555; padding-bottom: 8px;"><strong>🏅 Cảnh Giới:</strong> <span style="color: ${vipInfo.color}; float: right; font-weight: bold; text-shadow: 1px 1px 2px #000;">${vipInfo.name}</span></div>
-                        <div style="margin-bottom: 5px; font-size: 1.05rem; color: #ccc;"><strong>💎 Linh Thạch:</strong> <span style="color: #00e676; float: right; font-weight: bold;">${coins.toLocaleString('vi-VN')}</span></div>
-                    </div>
-
-                    <div style="margin-bottom: 15px; text-align: right;">
-                        <button onclick="PlayerProfile.togglePasswordForm(); if(window.playSoundInternal) window.playSoundInternal('select');" style="background: transparent; border: 1px solid #aaa; color: #ddd; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.9rem; transition: 0.2s;">🔐 Đổi Mật Khẩu</button>
-                    </div>
-
-                    <div id="prof-password-form" class="hidden" style="background: rgba(0,0,0,0.8); border: 2px solid #ff5252; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <p style="color: #ff5252; margin-bottom: 10px; font-weight: bold; font-size: 0.9rem;">THIẾT LẬP MẬT KHẨU MỚI</p>
-                        <input type="password" id="prof-old-pass" placeholder="Nhập mật khẩu cũ..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; text-align: center; font-size: 1rem; box-sizing: border-box;">
-                        <input type="password" id="prof-new-pass" placeholder="Nhập mật khẩu mới..." style="width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; text-align: center; font-size: 1rem; box-sizing: border-box;">
-                        <input type="password" id="prof-confirm-pass" placeholder="Xác nhận mật khẩu mới..." style="width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 4px; border: 1px solid #555; background: #222; color: #fff; text-align: center; font-size: 1rem; box-sizing: border-box;">
-                        <button onclick="PlayerProfile.submitPasswordChange()" style="background: #ff5252; color: #fff; width: 100%; padding: 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 1rem;">XÁC NHẬN ĐỔI</button>
-                    </div>
-
-                    <button onclick="document.getElementById('profile-overlay').remove(); if(window.playSoundInternal) window.playSoundInternal('select');" style="background: linear-gradient(to bottom, #d4af37, #aa8000); border: 2px solid #fff; color: #000; font-weight: bold; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; width: 100%; transition: 0.2s;">ĐÓNG HỒ SƠ</button>
-                </div>
-            </div>`;
-            document.body.insertAdjacentHTML('beforeend', html);
+                </div>`;
+                document.body.insertAdjacentHTML('beforeend', html);
+            } catch (err) {
+                console.error("Lỗi khi mở Profile: ", err);
+                if (window.showCustomAlertInternal) window.showCustomAlertInternal("Lỗi mở hồ sơ: " + err.message);
+                else alert("Lỗi mở hồ sơ: " + err.message);
+            }
         },
 
         handleAvatarUpload: function(input) {
@@ -144,7 +171,7 @@
                             let mainAvts = document.querySelectorAll('.player-avatar-img');
                             mainAvts.forEach(a => a.src = base64Avatar);
 
-                            PlayerProfile.open();
+                            window.PlayerProfile.open();
                             
                             if(btn) {
                                 btn.innerHTML = "✅ ĐÃ LƯU (F5 THOẢI MÁI)";
@@ -212,7 +239,7 @@
                     if(data.password === oldPass) {
                         db.ref('users/' + accId).update({ password: newPass }).then(() => {
                             alertFn("✅ Đổi mật khẩu thành công!\nHãy ghi nhớ mật khẩu mới nhé.", () => {
-                                PlayerProfile.togglePasswordForm(); 
+                                window.PlayerProfile.togglePasswordForm(); 
                                 document.getElementById('prof-old-pass').value = '';
                                 document.getElementById('prof-new-pass').value = '';
                                 document.getElementById('prof-confirm-pass').value = '';

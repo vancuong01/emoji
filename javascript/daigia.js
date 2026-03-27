@@ -1,51 +1,82 @@
+/* ========================================================
+ * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
+ * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
+ * CẢNH BÁO: Mọi hành vi sao chép không xin phép đều là vi phạm!
+ ======================================================== */
 (function() {
+    // 1. BƠM SẴN CSS 7 MÀU VÀO WEB ĐỂ MỌI FILE ĐỀU THẤY
     if (!document.getElementById('daigia-name-styles')) {
         let style = document.createElement('style'); style.id = 'daigia-name-styles';
         style.innerHTML = `
-            /* Top 1: Cầu vồng nhấp nháy liên tục */
-            .rank-1-name { 
-                animation: rainbow-text 2s linear infinite !important; 
-                font-family: 'Arial Black', sans-serif; 
-                font-weight: bold; 
-                text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(255, 215, 0, 0.8) !important;
-            }
-            @keyframes rainbow-text { 
-                0% { color: #ff0000; } 15% { color: #ff7f00; } 30% { color: #ffff00; } 
-                45% { color: #00ff00; } 60% { color: #00ffff; } 75% { color: #ff00ff; } 100% { color: #ff0000; } 
-            }
-            
-            /* TRẢ LẠI MÀU CHO TOP 2 (ĐỎ) VÀ TOP 3 (TÍM) */
+            .rank-1-name { animation: rainbow-text 2s linear infinite !important; font-family: 'Arial Black', sans-serif; font-weight: bold; text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(255, 215, 0, 0.8) !important; }
+            @keyframes rainbow-text { 0% { color: #ff0000; } 15% { color: #ff7f00; } 30% { color: #ffff00; } 45% { color: #00ff00; } 60% { color: #00ffff; } 75% { color: #ff00ff; } 100% { color: #ff0000; } }
             .rank-2-name { color: #ff3333 !important; text-shadow: 0 0 10px #ff3333, 0 0 20px #ff0000 !important; font-family: 'Arial Black', sans-serif; font-weight: bold; }
             .rank-3-name { color: #cc33ff !important; text-shadow: 0 0 10px #cc33ff, 0 0 20px #9c27b0 !important; font-family: 'Arial Black', sans-serif; font-weight: bold; }
         `;
         document.head.appendChild(style);
     }
 
+    // 2. BIẾN TOÀN CỤC CHỨA TOP 3 ĐẠI GIA VÀ HÀM TÔ MÀU (CÁC FILE KHÁC SẼ GỌI HÀM NÀY)
     window.TopWealthIds = {}; 
-    window.WealthListenerRef = null; 
 
-    // HÀM TÔ MÀU ĐÃ ĐƯỢC KHÔI PHỤC FULL CHỨC NĂNG
     window.getColoredNameHTML = function(accountId, rawName, defaultColor = "#fff") {
         let rank = window.TopWealthIds[accountId];
         if (rank === 1) return `<span class="rank-1-name">${rawName}</span>`;
         if (rank === 2) return `<span class="rank-2-name">${rawName}</span>`;
         if (rank === 3) return `<span class="rank-3-name">${rawName}</span>`;
         
-        // Top 4 trở đi màu bình thường theo Cảnh Giới
-        return `<span style="font-weight: bold; color: ${defaultColor}; text-shadow: 1px 1px 2px #000;">${rawName}</span>`;
+        return `<span style="color: ${defaultColor}; font-weight: bold; text-shadow: 1px 1px 2px #000;">${rawName}</span>`;
     };
 
+    // 3. THEO DÕI NGẦM TOP 3 NGAY TỪ LÚC VÀO GAME
+    setTimeout(() => {
+        if (typeof window.firebase !== 'undefined' && window.firebase.database) {
+            window.firebase.database().ref('users').orderByChild('coins').limitToLast(10).on('value', snapshot => { 
+                let daigiaList = []; 
+                snapshot.forEach(child => { 
+                    let u = child.val();
+                    if (!u.isAdmin) {
+                        daigiaList.push({ id: child.key, coins: parseInt(u.coins) || 0 }); 
+                    }
+                });
+                
+                daigiaList.sort((a, b) => b.coins - a.coins); 
+                
+                // Ghi nhớ Top 3 vào biến toàn cục
+                window.TopWealthIds = {};
+                if(daigiaList[0]) window.TopWealthIds[daigiaList[0].id] = 1;
+                if(daigiaList[1]) window.TopWealthIds[daigiaList[1].id] = 2;
+                if(daigiaList[2]) window.TopWealthIds[list[2].id] = 3;
+            });
+        }
+    }, 1500);
+
+    // 4. VÒNG LẶP TỰ ĐỘNG ÉP MÀU CHO SẢNH VÀ HỒ SƠ (KHÔNG CẦN F5)
     setInterval(() => {
         let myId = localStorage.getItem('pikachu_account_id');
         let myName = localStorage.getItem('pikachu_player_name');
+        if (!myId || !myName) return;
+        
+        // Quét màu tên ở Sảnh
         let lobbyNameEls = document.querySelectorAll('.name-txt'); 
         lobbyNameEls.forEach(el => {
-            if (myId && myName && !el.innerHTML.includes('rank-')) {
-                el.innerHTML = window.getColoredNameHTML(myId, myName, el.style.color || '#fff');
-            }
+            let defaultColor = el.dataset.defaultColor || el.style.color || '#fff';
+            if (!el.dataset.defaultColor) el.dataset.defaultColor = defaultColor;
+            
+            let newHtml = window.getColoredNameHTML(myId, myName, defaultColor);
+            if (el.innerHTML !== newHtml) el.innerHTML = newHtml;
         });
-    }, 1500);
+        
+        // Quét màu tên ở Hồ Sơ
+        let profileNameEl = document.getElementById('profile-colored-name-display');
+        if (profileNameEl) {
+            let defaultColor = profileNameEl.dataset.defaultColor || '#fff';
+            let newHtml = window.getColoredNameHTML(myId, myName, defaultColor);
+            if (profileNameEl.innerHTML !== newHtml) profileNameEl.innerHTML = newHtml;
+        }
+    }, 500);
 
+    // 5. GIAO DIỆN BẢNG ĐẠI GIA
     function createWealthLBUI() {
         if (document.getElementById('wealth-overlay')) return;
         const wealthHTML = `
@@ -65,10 +96,6 @@
         document.getElementById('close-wealth-btn').addEventListener('click', () => {
             if(window.playSoundInternal) window.playSoundInternal('select');
             document.getElementById('wealth-overlay').classList.add('hidden');
-            if (window.WealthListenerRef) {
-                window.firebase.database().ref('users').off('value', window.WealthListenerRef);
-                window.WealthListenerRef = null;
-            }
         });
     }
 
@@ -103,8 +130,10 @@
             else if (idx === 1) { rankHtml = `<span style="font-size: 1.5rem; font-weight: bold; color: #e0e0e0; text-shadow: 2px 2px 2px #000;">2</span>`; coinColor = '#e0e0e0'; } 
             else if (idx === 2) { rankHtml = `<span style="font-size: 1.5rem; font-weight: bold; color: #cd7f32; text-shadow: 2px 2px 2px #000;">3</span>`; coinColor = '#cd7f32'; }
 
-            // Gọi hàm tô màu Tên (Giờ đã phân biệt đủ Top 1, 2, 3)
-            let coloredNameHtml = window.getColoredNameHTML(item.accountId, playerName, vInfo.color);
+            let onlineDot = item.isOnline ? ' <span style="font-size:0.8rem; text-shadow:0 0 5px #00ff00;" title="Đang Online">🟢</span>' : '';
+            
+            // Gọi hàm tô màu chính nó
+            let coloredNameHtml = window.getColoredNameHTML(item.accountId, playerName, vInfo.color) + onlineDot;
 
             html += `<tr style="border-bottom: 1px solid rgba(0,255,255,0.1); height: 75px;">
                 <td>${rankHtml}</td>
@@ -124,44 +153,31 @@
     window.showWealthLeaderboard = function() {
         createWealthLBUI(); 
         document.getElementById('wealth-overlay').classList.remove('hidden'); 
-        loadWealthData();
-    }
-
-    function loadWealthData() {
+        
         const listEl = document.getElementById('wealth-list');
+        if (!listEl) return;
         listEl.innerHTML = '<p style="text-align: center; color: #ccc;">Đang triệu hồi Dữ Liệu Đại Gia...</p>';
-        if (typeof window.firebase === 'undefined' || !window.firebase.database) return;
-
-        if (window.WealthListenerRef) {
-            window.firebase.database().ref('users').off('value', window.WealthListenerRef);
-            window.WealthListenerRef = null;
+        
+        if (typeof window.firebase === 'undefined' || !window.firebase.database) {
+            listEl.innerHTML = '<p style="text-align: center; color: #ff5252;">Mất kết nối Thiên Đạo!</p>';
+            return;
         }
 
-        window.WealthListenerRef = window.firebase.database().ref('users').orderByChild('coins').limitToLast(20).on('value', snapshot => { 
-                let daigiaList = []; 
-                snapshot.forEach(userSnapshot => { 
-                    let u = userSnapshot.val();
-                    let accId = userSnapshot.key;
-                    let pName = u.displayName || u.name || '';
-                    
-                    if (!u.isAdmin) {
-                        u.accountId = accId;
-                        daigiaList.push(u); 
-                    }
-                });
-                
-                daigiaList.sort((a, b) => (b.coins || 0) - (a.coins || 0)); 
-                daigiaList = daigiaList.slice(0, 10);
-                
-                // LƯU CẢ 3 ÔNG TOP 1, 2, 3 ĐỂ PHỦ MÀU SERVER
-                window.TopWealthIds = {};
-                if(daigiaList[0]) window.TopWealthIds[daigiaList[0].accountId] = 1;
-                if(daigiaList[1]) window.TopWealthIds[daigiaList[1].accountId] = 2;
-                if(daigiaList[2]) window.TopWealthIds[daigiaList[2].accountId] = 3;
-
-                renderWealthLBHTML(daigiaList, listEl);
+        window.firebase.database().ref('users').orderByChild('coins').limitToLast(10).once('value').then(snapshot => { 
+            let daigiaList = []; 
+            snapshot.forEach(userSnapshot => { 
+                let u = userSnapshot.val();
+                let accId = userSnapshot.key;
+                if (!u.isAdmin) {
+                    u.accountId = accId;
+                    daigiaList.push(u); 
+                }
             });
+            
+            daigiaList.sort((a, b) => (b.coins || 0) - (a.coins || 0)); 
+            renderWealthLBHTML(daigiaList, listEl);
+        }).catch(err => {
+            listEl.innerHTML = '<p style="text-align: center; color: #ff5252;">Lỗi truy xuất: ' + err.message + '</p>';
+        });
     }
-
-    window.addEventListener('load', () => { setTimeout(loadWealthData, 1000); });
 })();

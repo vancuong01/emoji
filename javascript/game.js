@@ -1,10 +1,14 @@
+/* ========================================================
+ * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
+ * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
+ * ======================================================== */
 (function() {
     const DIFF_CONFIG = { easy: { timeMultiplier: 1.0, emojiCount: 15, tickRate: 1000 }, medium: { timeMultiplier: 0.75, emojiCount: 22, tickRate: 1000 }, hard: { timeMultiplier: 0.5, emojiCount: 30, tickRate: 850 } };
     const CONFIG = { ROWS: 9, COLS: 16, EMOJIS: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐒','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🦄','🐝','🐛','🦋','🐌'], POINTS_PER_MATCH: 10, INITIAL_SHUFFLES: 5, INITIAL_HINTS: 5 };
     const LEVELS = [ { level: 1, time: 600, gravity: 'none' }, { level: 2, time: 560, gravity: 'down' }, { level: 3, time: 520, gravity: 'left' }, { level: 4, time: 480, gravity: 'up' }, { level: 5, time: 440, gravity: 'right' }, { level: 6, time: 400, gravity: 'center' }, { level: 7, time: 380, gravity: 'split_h' }, { level: 8, time: 360, gravity: 'split_v' }, { level: 9, time: 340, gravity: 'alt_v' }, { level: 10, time: 320, gravity: 'alt_h' } ];
 
     let gameState = window.gameStateGlobal || { isMuted: false };
-    Object.assign(gameState, { board: [], selectedTile: null, score: 0, level: 1, timeRemaining: 0, shufflesRemaining: CONFIG.INITIAL_SHUFFLES, hintsRemaining: CONFIG.INITIAL_HINTS, timerInterval: null, playerName: "", accountId: "", isVip: false, isProcessing: false, hintTimeoutId: null, currentDifficulty: 'easy' });
+    Object.assign(gameState, { board: [], selectedTile: null, score: 0, level: 1, timeRemaining: 0, shufflesRemaining: CONFIG.INITIAL_SHUFFLES, hintsRemaining: CONFIG.INITIAL_HINTS, autowinsRemaining: 0, timerInterval: null, playerName: "", accountId: "", isVip: false, isProcessing: false, hintTimeoutId: null, currentDifficulty: 'easy' });
     window.gameStateGlobal = gameState;
     
     let highScore = 0; let audioCtx = null;
@@ -22,6 +26,7 @@
             else if (type === 'error') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, now); osc.frequency.linearRampToValueAtTime(150, now + 0.2); gain.gain.setValueAtTime(0.05, now); gain.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(now); osc.stop(now + 0.2); } 
             else if (type === 'win') { osc.type = 'square'; osc.frequency.setValueAtTime(400, now); osc.frequency.setValueAtTime(500, now + 0.1); osc.frequency.setValueAtTime(600, now + 0.2); osc.frequency.setValueAtTime(800, now + 0.3); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); } 
             else if (type === 'lose') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(100, now + 0.5); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
+            else if (type === 'lightning') { osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(0.01, now + 0.5); gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5); osc.start(now); osc.stop(now + 0.5); }
             setTimeout(() => { try { osc.disconnect(); gain.disconnect(); } catch(e){} }, 1000);
         } catch(err) {}
     };
@@ -109,6 +114,7 @@
     };
 
     function processLeaderboardData(lbData, diffType, listEl) { let filteredData = lbData.filter(item => { let itemDiff = item.diff ? item.diff : 'easy'; return itemDiff === diffType; }); let uniquePlayers = {}; filteredData.forEach(item => { let name = item.name.trim(); if (!uniquePlayers[name] || item.score > uniquePlayers[name].score) { uniquePlayers[name] = item; } }); let finalData = Object.values(uniquePlayers); finalData.sort((a, b) => { let scoreA = a.score || 0; let scoreB = b.score || 0; return scoreB - scoreA; }); finalData = finalData.slice(0, 20); renderLBHTML(finalData, listEl); }
+    
     function renderLBHTML(lb, listEl) {
         if (!lb || lb.length === 0) { listEl.innerHTML = '<p style="text-align:center; color:#ccc; font-size:1.1rem; padding: 20px;">Bảng này chưa có ai! Nhanh tay đoạt Top 1 đi bạn ơi!</p>'; } else {
             let html = '<table style="width:100%; border-collapse: collapse; font-size:1rem; text-align:center;"><tr style="border-bottom: 2px solid #ffd700; color: #ffd700;"><th>Hạng</th><th style="text-align:left; padding-left: 10px;">Đại Hiệp</th><th>Màn</th><th>Điểm</th></tr>';
@@ -127,11 +133,15 @@
                 let glowClass = vInfo.level > 0 ? 'vip-glow-frame' : ''; 
                 let textGlowClass = vInfo.level > 0 ? 'vip-glow-text' : '';
                 
+                let onlineDot = item.isOnline ? '<span style="font-size:0.8rem; text-shadow:0 0 5px #00ff00; margin-left: 5px;" title="Đang Online">🟢</span>' : '';
+                
+                let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(item.accountId, item.name, vInfo.color) : item.name;
+
                 let nameHtml = `
                 <div style="display:flex; align-items:center; justify-content:start; gap:8px; --vip-color:${vInfo.color}; text-align:left;">
                     <img src="${avt}" class="${glowClass}" style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid ${vInfo.color}; object-fit: cover; background: #000;">
                     <span style="background: ${vInfo.color}; color: #000; font-size: 0.65rem; padding: 3px 6px; border-radius: 4px; font-weight: bold; box-shadow: 0 0 5px ${vInfo.color}; display:inline-block; white-space: nowrap; text-transform: uppercase;">${vInfo.name}</span>
-                    <span class="${textGlowClass}" style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: ${vInfo.color}; font-weight: bold; text-shadow: 0 0 3px #000;">${item.name}</span>
+                    <span class="${textGlowClass}" style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; text-shadow: 0 0 3px #000;">${coloredName}${onlineDot}</span>
                 </div>`;
                 
                 html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1); line-height:3;">
@@ -202,7 +212,7 @@
                         <div class="modal-content" style="max-width: 420px; border: 3px solid #ff00ff; box-shadow: 0 0 30px rgba(255, 0, 255, 0.6); padding: 30px;">
                             <div style="font-size: 4rem; margin-bottom: 10px; animation: pvp-pulse 1.5s infinite;">🔥</div>
                             <h2 style="color: #ff00ff; margin-bottom: 15px; text-shadow: 0 0 10px #ff00ff; font-size: 1.8rem;">QUYỀN NĂNG ADMIN</h2>
-                            <p style="font-size: 1.1rem; margin-bottom: 25px; color: #fff; line-height: 1.5;">Đăng nhập thành công!<br><br>Đã kích hoạt <b style="color:#ffeb3b; text-shadow: 0 0 5px #ffeb3b;">God Mode</b><br>(Vô hạn Gợi ý & Đổi vị trí)</p>
+                            <p style="font-size: 1.1rem; margin-bottom: 25px; color: #fff; line-height: 1.5;">Đăng nhập thành công!<br><br>Đã kích hoạt <b style="color:#ffeb3b; text-shadow: 0 0 5px #ffeb3b;">God Mode</b><br>(Vô hạn Gợi ý, Đổi vị trí, Auto Win)</p>
                             <button id="custom-admin-ok-btn" style="background: linear-gradient(to bottom, #9c27b0, #4a148c); border: 2px solid #fff; color: #fff; font-weight: bold; padding: 12px 30px; border-radius: 8px; cursor: pointer; font-size: 1.2rem; width: 100%; box-shadow: 0 0 15px rgba(156, 39, 176, 0.6);">TIẾN VÀO TRẬN ĐỊA</button>
                         </div>
                     </div>`;
@@ -235,18 +245,21 @@
     function init() {
         document.body.classList.add('is-playing');
        
-    let gc = document.getElementById('main-game-ui');
-    if (gc) {
-        gc.style.display = ''; 
-        gc.classList.add('active'); 
-    }
+        let gc = document.getElementById('main-game-ui');
+        if (gc) {
+            gc.style.display = ''; 
+            gc.classList.add('active'); 
+        }
 
         syncPlayerProfile();
         const diffConfig = DIFF_CONFIG[gameState.currentDifficulty]; let currentLevelConfig = LEVELS[gameState.level - 1] || LEVELS[LEVELS.length - 1];
         gameState.board = []; gameState.selectedTile = null; gameState.timeRemaining = Math.floor(currentLevelConfig.time * diffConfig.timeMultiplier); gameState.isProcessing = false; 
         
         let extraHints = parseInt(localStorage.getItem('pikachu_inv_hints')) || 0; let extraShuffles = parseInt(localStorage.getItem('pikachu_inv_shuffles')) || 0;
+        let extraAutowins = parseInt(localStorage.getItem('pikachu_inv_autowins')) || 0;
+
         gameState.hintsRemaining = CONFIG.INITIAL_HINTS + extraHints; gameState.shufflesRemaining = CONFIG.INITIAL_SHUFFLES + extraShuffles;
+        gameState.autowinsRemaining = extraAutowins;
 
         if (gameState.hintTimeoutId) clearTimeout(gameState.hintTimeoutId);
         let emojisToUse = diffConfig.emojiCount; let gameEmojis = [...CONFIG.EMOJIS].sort(() => 0.5 - Math.random()).slice(0, emojisToUse);
@@ -255,6 +268,27 @@
         for (let r = 0; r <= CONFIG.ROWS + 1; r++) { gameState.board[r] = new Array(CONFIG.COLS + 2).fill(0); } let index = 0;
         for (let r = 1; r <= CONFIG.ROWS; r++) { for (let c = 1; c <= CONFIG.COLS; c++) { gameState.board[r][c] = tiles[index++]; } }
         renderBoard(); updateUI(); startTimer();
+
+        // TẠO NÚT AUTO WIN (BÁM THEO NÚT GỢI Ý CHO CHẮC CHẮN)
+        let hintBtn = document.getElementById('hint-btn');
+        if (hintBtn && hintBtn.parentNode && !document.getElementById('autowin-btn')) {
+            let autoBtn = document.createElement('button');
+            autoBtn.id = 'autowin-btn';
+            autoBtn.className = hintBtn.className; // Mượn luôn class của nút gợi ý cho đồng bộ giao diện
+            autoBtn.innerHTML = `<i>⚡</i><span>Lôi: <span id="autowin-count">${gameState.isVip ? '∞' : gameState.autowinsRemaining}</span></span>`;
+            
+            // Xịt thêm tí sơn Tím lôi kiếp cho ngầu
+            autoBtn.style.background = "linear-gradient(to bottom, #9c27b0, #4a148c)";
+            autoBtn.style.color = "#fff";
+            autoBtn.style.border = "2px solid #e040fb";
+            autoBtn.style.marginLeft = "10px"; // Đẩy cách ra 1 tí cho đẹp
+            autoBtn.style.boxShadow = "0 0 10px rgba(156, 39, 176, 0.6)";
+
+            hintBtn.parentNode.appendChild(autoBtn);
+        } else {
+            let elAutoCount = document.getElementById('autowin-count'); 
+            if (elAutoCount) elAutoCount.innerText = gameState.isVip ? '∞' : gameState.autowinsRemaining; 
+        }
     }
 
     function renderBoard() {
@@ -373,11 +407,66 @@
         renderBoard(); updateUI();
     }
 
+    // THIÊN LÔI DẪN ĐƯỜNG (AUTO WIN)
+    function performAutoWin() {
+        if (!gameState.isVip && gameState.autowinsRemaining <= 0) { 
+            window.showCustomAlertInternal('Vật phẩm Thiên Lôi đã cạn! Hãy vào Tông Môn Bảo Các để mua thêm nhé.'); 
+            return; 
+        }
+        
+        window.showCustomConfirmInternal("⚡ Triệu hồi Thiên Lôi phá đảo màn này ngay lập tức?", () => {
+            if (!gameState.isVip) {
+                gameState.autowinsRemaining--; 
+                localStorage.setItem('pikachu_inv_autowins', gameState.autowinsRemaining);
+                if (window.db && localStorage.getItem('pikachu_is_admin') !== 'true') {
+                    window.db.ref('users/' + gameState.accountId).update({ invAutowins: gameState.autowinsRemaining });
+                }
+                updateUI();
+            }
+            
+            gameState.isProcessing = true;
+            window.playSoundInternal('lightning');
+            
+            let tiles = document.querySelectorAll('.tile:not(.matched)');
+            tiles.forEach(t => {
+                t.style.transition = '0.5s';
+                t.style.transform = 'scale(0)';
+                t.style.opacity = '0';
+            });
+
+            let remainingPairs = tiles.length / 2;
+            gameState.score += remainingPairs * CONFIG.POINTS_PER_MATCH;
+            updateHighScore();
+
+            for (let r = 1; r <= CONFIG.ROWS; r++) {
+                for (let c = 1; c <= CONFIG.COLS; c++) {
+                    gameState.board[r][c] = 0;
+                }
+            }
+
+            setTimeout(() => {
+                updateUI();
+                clearInterval(gameState.timerInterval);
+                window.playSoundInternal('win'); 
+                setTimeout(() => { 
+                    window.showCustomAlertInternal(`⚡ THIÊN LÔI DẪN ĐƯỜNG!\n\nBạn đã vượt qua Bàn ${gameState.level}. Chuẩn bị sang bàn tiếp theo nhé!`, () => { 
+                        gameState.level++; 
+                        init(); 
+                    }); 
+                }, 200);
+            }, 500);
+        });
+    }
+
     function updateUI() {
         let elScore = document.getElementById('score'); if (elScore) elScore.innerText = gameState.score; 
         let elLevel = document.getElementById('level'); if (elLevel) elLevel.innerText = gameState.level; 
         let elShuff = document.getElementById('shuffle-count'); if (elShuff) elShuff.innerText = gameState.isVip ? '∞' : gameState.shufflesRemaining; 
         let elHint = document.getElementById('hint-count'); if (elHint) elHint.innerText = gameState.isVip ? '∞' : gameState.hintsRemaining; 
+        
+        let elAutoCount = document.getElementById('autowin-count'); 
+        if (elAutoCount) elAutoCount.innerText = gameState.isVip ? '∞' : gameState.autowinsRemaining; 
+        
         updateTimeDisplay();
     }
     window.updateUIGlobal = updateUI;
@@ -407,6 +496,7 @@
         let pauseOverlay = document.getElementById('pause-overlay'); if (pauseOverlay) pauseOverlay.classList.add('hidden');
         if(window.showMainMenu) window.showMainMenu();
     }
+    
     document.addEventListener('click', function(e) {
         let target = e.target;
         if (target.id === 'cancel-diff-btn' || target.closest('#cancel-diff-btn')) { 
@@ -421,6 +511,9 @@
         if (target.closest('#hint-btn')) { e.preventDefault(); window.playSoundInternal('select'); performHint(); return; }
         if (target.closest('#shuffle-btn')) { e.preventDefault(); window.playSoundInternal('select'); performShuffle(); return; }
         
+        // CÚ CLICK TRIỆU HỒI SẤM SÉT LÀ ĐÂY
+        if (target.id === 'autowin-btn' || target.closest('#autowin-btn')) { e.preventDefault(); performAutoWin(); return; }
+
         if (target.id === 'close-leaderboard-btn') {
             window.playSoundInternal('select');
             let lbOverlay = document.getElementById('leaderboard-overlay'); if (lbOverlay) lbOverlay.classList.add('hidden');

@@ -1,3 +1,8 @@
+/* ========================================================
+ * TÁC GIẢ: BỞI VĂN CƯỜNG (CODE BY VANCUONG)
+ * BẢN QUYỀN: ĐỘC QUYỀN SERVER TU TIÊN PIKACHU
+ * ======================================================== */
+
 (function() {
     document.addEventListener('click', function(e) {
         if (e.target && (e.target.id === 'btn-menu-pvp' || e.target.closest('#btn-menu-pvp'))) {
@@ -63,6 +68,10 @@
         .pvp-tile-m3.explode { animation: explode-anim 0.3s forwards; }
         @keyframes explode-anim { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.8; filter: brightness(2); } 100% { transform: scale(0); opacity: 0; } }
         
+        /* ĐÃ THÊM: HIỆU ỨNG LẤP CHỖ TRỐNG SAU KHI NỔ */
+        .tile-drop-anim { animation: tileDropAnim 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes tileDropAnim { 0% { transform: translateY(-100px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+
         .hp-text-display { position: absolute; width: 100%; top: 0; left: 0; text-align: center; color: white; font-weight: bold; font-size: 0.9rem; line-height: 20px; z-index: 10; text-shadow: 1px 1px 2px #000; }
         .hp-bar-fill { transition: width 0.3s ease-out; }
         .shield-bar-fill { height: 100%; background: linear-gradient(90deg, #0091ea, #00e5ff); position: absolute; top: 0; left: 0; z-index: 5; transition: width 0.3s ease-out; }
@@ -132,6 +141,7 @@
         newBtnNo.addEventListener('click', () => { if(window.playSoundInternal) window.playSoundInternal('select'); overlay.classList.add('hidden'); });
         overlay.classList.remove('hidden'); input.focus();
     };
+
     window.PvP = {
         roomId: null, playerRole: null, hp: 100, maxHp: 100, shield: 0, oppHp: 100, oppShield: 0,
         board: [], pendingBoard: null, selectedTile: null, isProcessing: false, comboCount: 0, 
@@ -451,7 +461,9 @@
             let db = window.firebase.database();
             let myRoomRef = db.ref(`pvp_rooms/${this.roomId}`);
             if (this.playerRole === 'host') { myRoomRef.onDisconnect().cancel(); } else { myRoomRef.child('guest').onDisconnect().cancel(); }
-            myRoomRef.child(this.playerRole).onDisconnect().update({ hp: 0 }); 
+            
+            // ĐÃ XÓA: myRoomRef.child(this.playerRole).onDisconnect().update({ hp: 0 }); 
+            // -> Giải quyết triệt để lỗi mất mạng 1 giây là bị phán chết.
 
             let wrap = document.getElementById('pvp-overlay-wrap'); if(!wrap) return;
             this.hp = this.maxHp; this.shield = 0; this.oppHp = this.maxHp; this.oppShield = 0;
@@ -554,16 +566,30 @@
             window.firebase.database().ref('pvp_rooms/' + this.roomId).update({ currentTurn: nextTurn, board: this.board });
         },
 
+        // ĐÃ THÊM TÍNH NĂNG VUỐT: Trận pháp kích hoạt vuốt khi vẽ bàn cờ
         drawGrid: function() {
             const boardEl = document.getElementById('pvp-board'); 
-            if(!boardEl || this.isProcessing) return; // Nếu đang chạy hiệu ứng thì không vẽ lại
+            if(!boardEl || this.isProcessing) return; 
             boardEl.innerHTML = '';
             for (let r = 0; r < CONFIG.ROWS; r++) {
                 for (let c = 0; c < CONFIG.COLS; c++) {
                     let tile = document.createElement('div');
                     tile.className = 'pvp-tile-m3'; tile.dataset.r = r; tile.dataset.c = c;
-                    tile.innerText = this.board[r] && this.board[r][c] ? this.board[r][c].icon : '';
-                    tile.onclick = () => this.handleTileSelect(r, c, tile); boardEl.appendChild(tile);
+                    
+                    if (this.board[r] && this.board[r][c]) {
+                        tile.innerText = this.board[r][c].icon;
+                        // HIỆU ỨNG RƠI: Kiểm tra xem ô này có phải là mới được sinh ra từ applyGravity không
+                        if (this.board[r][c].isNew) {
+                            tile.classList.add('tile-drop-anim');
+                            this.board[r][c].isNew = false; // Xóa cờ để không bị rơi lại nếu vẽ lại màn hình
+                        }
+                    }
+
+                    // TÍCH HỢP VUỐT TRÊN MOBILE & PC (THAY THẾ ONCLICK)
+                    tile.onmousedown = (e) => { e.preventDefault(); this.handleSwipeStart(e, r, c, tile); };
+                    tile.ontouchstart = (e) => { e.preventDefault(); this.handleSwipeStart(e, r, c, tile); };
+                    
+                    boardEl.appendChild(tile);
                 }
             }
         },
@@ -574,7 +600,62 @@
                 id: Date.now() + Math.random(), sender: this.playerRole, type: type, data: data
             });
         },
-        handleTileSelect: function(r, c, tileEl) {
+
+        // ĐÃ THÊM LOGIC XỬ LÝ VUỐT (KÉO) 
+        handleSwipeStart: function(e, r, c, tileEl) {
+            if (this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
+            
+            let startX = e.clientX || (e.touches && e.touches[0].clientX);
+            let startY = e.clientY || (e.touches && e.touches[0].clientY);
+            if (startX === undefined) return;
+
+            // Nếu chưa chạm viên nào, hoặc chạm sang viên khác thì coi như chọn viên này trước
+            if (!this.selectedTile || (this.selectedTile.r !== r || this.selectedTile.c !== c)) {
+                this.handleTileSelect(r, c, tileEl);
+            }
+
+            const handleMove = (moveEvent) => {
+                let clientX = moveEvent.clientX || (moveEvent.touches && moveEvent.touches[0].clientX);
+                let clientY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0].clientY);
+                if (clientX === undefined) return;
+
+                let dx = clientX - startX;
+                let dy = clientY - startY;
+
+                // Nếu kéo chuột/vuốt quá 30px thì kích hoạt đổi vị trí
+                if (Math.abs(dx) > 30 || Math.abs(dy) > 30) { 
+                    let targetR = r, targetC = c;
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        targetC = dx > 0 ? c + 1 : c - 1; // Vuốt ngang
+                    } else {
+                        targetR = dy > 0 ? r + 1 : r - 1; // Vuốt dọc
+                    }
+                    
+                    cleanup(); // Dừng lắng nghe ngay lập tức khi đã vuốt thành công
+
+                    if (targetR >= 0 && targetR < CONFIG.ROWS && targetC >= 0 && targetC < CONFIG.COLS) {
+                        let targetTileEl = document.getElementById('pvp-board').children[targetR * CONFIG.COLS + targetC];
+                        if (targetTileEl) {
+                            this.handleTileSelect(targetR, targetC, targetTileEl); // Gửi ô đích vào hàm swap
+                        }
+                    }
+                }
+            };
+
+            const cleanup = () => {
+                document.removeEventListener('mousemove', handleMove);
+                document.removeEventListener('mouseup', cleanup);
+                document.removeEventListener('touchmove', handleMove);
+                document.removeEventListener('touchend', cleanup);
+            };
+
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', cleanup);
+            document.addEventListener('touchmove', handleMove, { passive: false });
+            document.addEventListener('touchend', cleanup);
+        },
+
+       handleTileSelect: function(r, c, tileEl) {
             if (this.currentTurn !== this.playerRole || this.isProcessing || this.turnTimeRemaining <= 0) return;
             if (window.playSoundInternal) window.playSoundInternal('select');
             
@@ -592,6 +673,8 @@
                 if (isAdjacent) {
                     this.isProcessing = true;
                     this.sendAction('swap', { r1: sr, c1: sc, r2: r, c2: c });
+                    
+                    // Tính toán khoảng cách để bay
                     const dx = (c - sc) * (sEl.offsetWidth + 2);
                     const dy = (r - sr) * (sEl.offsetHeight + 2);
 
@@ -599,33 +682,46 @@
                     sEl.style.transform = `translate(${dx}px, ${dy}px)`;
                     tileEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
 
+                    // Đợi 0.3s cho hiệu ứng bay tới nơi
                     setTimeout(() => {
+                        // Đổi vị trí trong bộ nhớ (Mảng) trước
                         let temp = this.board[sr][sc];
                         this.board[sr][sc] = this.board[r][c];
                         this.board[r][c] = temp;
 
-                        sEl.style.transform = ''; tileEl.style.transform = '';
-                        sEl.classList.remove('swapping'); tileEl.classList.remove('swapping');
-                        
-                        this.isProcessing = false;
-                        this.drawGrid();
-                        
                         let matches = this.findMatches();
+                        
                         if (matches.length > 0) { 
+                            // NẾU ĂN ĐƯỢC: Xóa class bay, vẽ lại bàn cờ và cho nổ
+                            sEl.style.transform = ''; tileEl.style.transform = '';
+                            sEl.classList.remove('swapping'); tileEl.classList.remove('swapping');
+                            
+                            this.isProcessing = false;
+                            this.drawGrid(); // Vẽ lại để cập nhật vị trí chuẩn xác
+                            
                             this.isProcessing = true;
-                            this.comboCount = 0; this.processMatches(matches); 
+                            this.comboCount = 0; 
+                            this.processMatches(matches); 
                         } 
                         else {
+                            // NẾU KHÔNG ĂN ĐƯỢC: Trả lại mảng như cũ và dùng Animation bay ngược về
+                            let tB = this.board[sr][sc]; 
+                            this.board[sr][sc] = this.board[r][c]; 
+                            this.board[r][c] = tB;
+
                             if (window.playSoundInternal) window.playSoundInternal('error');
                             this.sendAction('swap_back', { r1: sr, c1: sc, r2: r, c2: c });
                             
-                            this.isProcessing = true;
-                            sEl.style.transform = `translate(${dx}px, ${dy}px)`;
-                            tileEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
+                            // Bay ngược về tọa độ gốc (0,0) so với vị trí ban đầu của thẻ HTML
+                            sEl.style.transform = 'translate(0px, 0px)';
+                            tileEl.style.transform = 'translate(0px, 0px)';
+                            
+                            // Đợi 0.3s cho nó bay về rồi mới gỡ block
                             setTimeout(() => {
-                                let tB = this.board[sr][sc]; this.board[sr][sc] = this.board[r][c]; this.board[r][c] = tB;
+                                sEl.classList.remove('swapping'); tileEl.classList.remove('swapping');
                                 sEl.style.transform = ''; tileEl.style.transform = '';
-                                this.isProcessing = false; this.drawGrid(); 
+                                this.isProcessing = false; 
+                                // Không cần gọi drawGrid() vì các thẻ vẫn nằm nguyên ở DOM cũ
                             }, 300);
                         }
                     }, 300);
@@ -683,6 +779,15 @@
                                     this.drawGrid(); 
                                 }
                             }, 350);
+                        }
+                        // ĐÃ THÊM: ĐỒNG BỘ HIỆU ỨNG NỔ CỦA ĐỐI THỦ
+                        else if (action.type === 'match_explode') {
+                            if (boardEl && boardEl.children.length > 0) {
+                                action.data.matches.forEach(m => {
+                                    let tile = boardEl.children[m.r * CONFIG.COLS + m.c];
+                                    if(tile) tile.classList.add('explode');
+                                });
+                            }
                         }
                     }
                 }
@@ -770,6 +875,10 @@
             }
 
             this.applySkills(totalDmg, totalHeal, totalShield, isFrozen);
+            
+            // ĐÃ THÊM: Truyền cờ báo hiệu vụ nổ cho người chơi bên kia biết
+            this.sendAction('match_explode', { matches: matches });
+            
             let boardEl = document.getElementById('pvp-board');
             matches.forEach(m => { let tile = boardEl.children[m.r * CONFIG.COLS + m.c]; if (tile) tile.classList.add('explode'); });
 
@@ -804,11 +913,14 @@
             for (let c = 0; c < CONFIG.COLS; c++) {
                 let colData = []; 
                 for (let r = 0; r < CONFIG.ROWS; r++) { if (this.board[r] && this.board[r][c]) colData.push(this.board[r][c]); }
-                while (colData.length < CONFIG.ROWS) { colData.unshift({ ...PVP_EMOJIS[Math.floor(Math.random() * PVP_EMOJIS.length)] }); }
+                
+                // ĐÃ THÊM: Gắn cờ isNew = true để khi vẽ lại sẽ kèm theo hoạt ảnh Rơi Xuống
+                while (colData.length < CONFIG.ROWS) { 
+                    colData.unshift({ ...PVP_EMOJIS[Math.floor(Math.random() * PVP_EMOJIS.length)], isNew: true }); 
+                }
                 for (let r = 0; r < CONFIG.ROWS; r++) { this.board[r][c] = colData[r]; }
             }
             
-            // FIX LỖI ĐEN MÀN HÌNH: Tạm tắt khiên khóa để ÉP hệ thống phải vẽ lại các con thú vừa rơi xuống
             let oldProcessing = this.isProcessing;
             this.isProcessing = false;
             this.drawGrid(); 
@@ -824,8 +936,6 @@
                 } 
                 else {
                     this.isProcessing = false;
-                    
-                    // Nếu mạng lag có bản lưu tạm thì vẽ nốt cho chắc ăn
                     if (this.pendingBoard) {
                         this.board = this.pendingBoard;
                         this.pendingBoard = null;
