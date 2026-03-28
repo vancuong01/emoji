@@ -27,7 +27,7 @@
         if (!window.ChatSystemListenersAdded && localStorage.getItem('pikachu_account_id') && typeof window.firebase !== 'undefined') {
             ChatSystem.listenForMailbox();
             ChatSystem.listenForWorldChatGlobal();
-            ChatSystem.startPresenceTracker(); // ĐÃ THÊM: Theo dõi Online
+            ChatSystem.startPresenceTracker();
             window.ChatSystemListenersAdded = true;
         }
     }, 1000);
@@ -43,7 +43,7 @@
             .chat-tab-btn:hover:not(.active) { color: #d4af37; background: linear-gradient(to bottom, #3e2723, #1f140e); }
             .chat-tab-btn.active { background: linear-gradient(to bottom, #004d40, #00251a); color: #00ffff; border-color: #00e5ff; box-shadow: 0 -5px 15px rgba(0, 229, 255, 0.3); text-shadow: 0 0 10px #00ffff; }
             
-            .chat-msg-box { height: 360px; max-height: 45vh; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background: rgba(0, 0, 0, 0.75); padding: 15px; border-radius: 0 0 12px 12px; border: 2px solid #8b6b22; box-shadow: inset 0 0 20px rgba(0,0,0,0.9); z-index: 1; }
+            .chat-msg-box { height: 360px; max-height: 45vh; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; background: rgba(0, 0, 0, 0.75); padding: 15px; border-radius: 0 0 12px 12px; border: 2px solid #8b6b22; box-shadow: inset 0 0 20px rgba(0,0,0,0.9); z-index: 1; scroll-behavior: smooth; }
             .chat-msg-box::-webkit-scrollbar { width: 8px; }
             .chat-msg-box::-webkit-scrollbar-track { background: #1a100b; border-radius: 4px; }
             .chat-msg-box::-webkit-scrollbar-thumb { background: #8b6b22; border-radius: 4px; border: 1px solid #d4af37; }
@@ -112,7 +112,6 @@
         isAdmin: false, currentTab: 'world', currentPrivateRoom: null, activeRef: null,
         worldChatQueue: [], isMarqueeRunning: false, 
 
-        // --- ĐÃ THÊM: HỆ THỐNG KIỂM TRA ONLINE FIREBASE ---
         startPresenceTracker: function() {
             let myId = localStorage.getItem('pikachu_account_id');
             if (!myId || typeof window.firebase === 'undefined') return;
@@ -124,7 +123,7 @@
                 if (snap.val() === true) {
                     let statusRef = myRef.child('isOnline');
                     statusRef.onDisconnect().set(false);
-                    statusRef.set(true); // Khi đăng nhập thành công sẽ thắp sáng Sinh Mệnh Bài
+                    statusRef.set(true); 
                 }
             });
         },
@@ -141,9 +140,9 @@
                 document.body.insertAdjacentHTML('beforeend', mqHTML);
             }
 
-            chatRef.limitToLast(1).on('child_added', snap => {
+            chatRef.orderByChild('timestamp').startAt(initTime).on('child_added', snap => {
                 let msg = snap.val();
-                if (msg && msg.timestamp && (Date.now() - msg.timestamp < 15000) && msg.timestamp >= initTime) {
+                if (msg) {
                     this.worldChatQueue.push(msg);
                     if (!this.isMarqueeRunning) {
                         this.playNextMarquee();
@@ -168,7 +167,6 @@
             wrap.style.display = 'block';
 
             let nameColor = msgData.vipColor || '#ffd700';
-            // TRIỆU HỒI MÀU CỦA ĐẠI GIA
             let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(msgData.senderId, msgData.name, nameColor) : `<span style="color: ${nameColor};">${msgData.name}</span>`;
             
             content.innerHTML = `📢 <span style="font-weight: bold; text-transform: uppercase;">[Thế Giới] ${coloredName}</span>: <span style="color: #fff;">${msgData.text}</span>`;
@@ -188,13 +186,13 @@
             
             let db = window.firebase.database();
             let mailRef = db.ref(`users/${myId}/mailbox`);
+            let initTime = Date.now();
             
-            mailRef.limitToLast(1).on('child_added', snap => {
+            mailRef.orderByChild('timestamp').startAt(initTime).on('child_added', snap => {
                 let mail = snap.val();
                 let mailId = snap.key;
-                let serverNow = Date.now(); 
                 
-                if (mail && !mail.isRead && (serverNow - mail.timestamp < 15000)) {
+                if (mail && !mail.isRead) {
                     let currentRoomStr = [myId, mail.senderId].sort().join('_');
                     let isChattingWithThem = (document.getElementById('chat-overlay') && this.currentPrivateRoom === currentRoomStr);
                     
@@ -236,7 +234,7 @@
             let vipPts = localStorage.getItem('pikachu_vip_points') || 0;
             let vipInfo = window.getVipLevelInfo ? window.getVipLevelInfo(vipPts) : { level: 0, name: "Phàm Nhân", color: "#ccc" };
             
-            this.isAdmin = localStorage.getItem('pikachu_is_admin') === 'true';
+            this.isAdmin = localStorage.getItem('pikachu_role') === 'admin';
             if (this.isAdmin) vipInfo = { level: 10, name: "Tiên Nhân", color: "#ff0000" };
             
             this.myVipLevel = vipInfo.level; this.myVipName = vipInfo.name; this.myVipColor = vipInfo.color;
@@ -287,8 +285,21 @@
 
             let db = window.firebase.database();
             this.activeRef = db.ref('world_chat');
-            this.activeRef.limitToLast(30).on('child_added', snap => {
-                let d = snap.val(); this.appendMessage('chat-messages', d);
+            
+            // 1. Tải 30 tin nhắn cũ nhất (Chỉ lấy 1 lần)
+            this.activeRef.limitToLast(30).once('value').then(snap => {
+                if (snap.exists()) {
+                    let messages = [];
+                    snap.forEach(child => { messages.push(child.val()); });
+                    messages.forEach(msg => this.appendMessage('chat-messages', msg));
+                }
+                
+                // 2. Bắt đầu lắng nghe tin nhắn MỚI từ thời điểm này trở đi
+                let fetchTime = Date.now();
+                this.activeRef.orderByChild('timestamp').startAt(fetchTime).on('child_added', newSnap => {
+                    let newMsg = newSnap.val();
+                    if (newMsg) this.appendMessage('chat-messages', newMsg);
+                });
             });
         },
 
@@ -341,7 +352,6 @@
                                 '<span style="color:#00e676; text-shadow: 0 0 5px #00e676; font-size:0.8rem;">🟢 Đang Online</span>' : 
                                 '<span style="color:#777; font-size:0.8rem;">⚪ Ngoại Tuyến</span>';
 
-                            // TRIỆU HỒI MÀU CỦA ĐẠI GIA
                             let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(fId, name, '#ffd700') : name;
 
                             let html = `
@@ -383,10 +393,22 @@
 
             let db = window.firebase.database();
             db.ref('ephemeral_chats/' + roomId).onDisconnect().remove();
-
             this.activeRef = db.ref('ephemeral_chats/' + roomId);
-            this.activeRef.on('child_added', snap => {
-                let d = snap.val(); this.appendMessage('private-messages', d, true);
+
+            // 1. Tải 30 tin nhắn cũ nhất
+            this.activeRef.limitToLast(30).once('value').then(snap => {
+                if (snap.exists()) {
+                    let messages = [];
+                    snap.forEach(child => { messages.push(child.val()); });
+                    messages.forEach(msg => this.appendMessage('private-messages', msg, true));
+                }
+                
+                // 2. Lắng nghe tin nhắn mới từ thời điểm hiện tại
+                let fetchTime = Date.now();
+                this.activeRef.orderByChild('timestamp').startAt(fetchTime).on('child_added', newSnap => {
+                    let newMsg = newSnap.val();
+                    if (newMsg) this.appendMessage('private-messages', newMsg, true);
+                });
             });
         },
 
@@ -444,7 +466,6 @@
             let isGlow = (nameColor !== '#ccc' && nameColor !== '#888888' && nameColor !== '#fff');
             let textGlowClass = isGlow ? 'vip-glow-text' : '';
 
-            // TRIỆU HỒI MÀU CỦA ĐẠI GIA
             let coloredName = window.getColoredNameHTML ? window.getColoredNameHTML(data.senderId, playerName, nameColor) : playerName;
 
             let avatarHTML = '';
@@ -482,14 +503,18 @@
             </div>`;
             
             box.insertAdjacentHTML('beforeend', html);
+            // Tự động cuộn xuống tin nhắn mới nhất
             box.scrollTop = box.scrollHeight; 
         }
     };
 
-    // DỌN RÁC FIREBASE
+    // DỌN RÁC FIREBASE (Chỉ admin hoặc máy chủ mới nên dọn rác để tránh xung đột)
     setInterval(() => {
         if (typeof window.firebase === 'undefined' || !window.firebase.database) return;
         
+        // Kiểm tra xem có phải admin không mới thực hiện việc dọn rác
+        if (localStorage.getItem('pikachu_role') !== 'admin') return;
+
         let db = window.firebase.database();
         let tenMins = 10 * 60 * 1000;       
         let oneDay = 24 * 60 * 60 * 1000;   
